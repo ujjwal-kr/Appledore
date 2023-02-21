@@ -13,7 +13,7 @@ fn main() {
         match stream {
             Ok(_stream) => {
                 println!("accepted new connection");
-            } 
+            }
             Err(e) => {
                 println!("error: {}", e);
             }
