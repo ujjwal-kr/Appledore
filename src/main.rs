@@ -15,7 +15,7 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(s) => {
-                handle_connection(s)
+                handle_connection(s);
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -26,7 +26,13 @@ fn main() {
 
 fn handle_connection(mut stream: TcpStream) {
         let mut buf = [0; 512];
-        stream.read(&mut buf).unwrap();
-        println!("{:?}", buf);
-        stream.write(&encode_resp_simple_string("PONG")).unwrap();   
+        loop {
+            let bytes_read = stream.read(&mut buf).unwrap();
+            // break the loop if no bytes recieved
+            if bytes_read == 0 {
+                println!("Client closed the connection");
+                break;
+            }
+            stream.write(&encode_resp_simple_string("PONG")).unwrap();      
+        }
 }
