@@ -33,10 +33,10 @@ pub fn encode_resp_bulk_string(bytes: Vec<u8>) -> Vec<u8> {
     encoded
 }
 
-pub fn encode_resp_arrays(arr: Vec<String>) -> Vec<u8> {
+pub fn encode_resp_array(arr: Vec<String>) -> Vec<u8> {
     let mut encoded: Vec<u8> = vec![];
     encoded.push(b'*');
-    encoded.extend(arr.len().to_string().into_bytes());
+    encoded.extend(arr.len().to_be_bytes());
     encoded.extend(&[b'\r', b'\n']);
     for item in arr {
         encoded.extend(encode_resp_bulk_string(item.into_bytes()));
