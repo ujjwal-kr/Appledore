@@ -39,7 +39,7 @@ impl Storage {
         arr: Vec<String>,
         cmd: &str,
     ) -> Result<(), StorageError> {
-        match self.get_array(&key) {
+        match self.get_array(&key, [0, arr.len()].to_vec()) {
             Ok(_) => match self.0.get_mut(&key) {
                 Some(v) => match v {
                     Unit::Vector(value) => {
@@ -60,10 +60,10 @@ impl Storage {
         Ok(())
     }
 
-    pub fn get_array(&mut self, key: &str) -> Result<Vec<String>, StorageError> {
+    pub fn get_array(&mut self, key: &str, bound: Vec<usize>) -> Result<Vec<String>, StorageError> {
         match self.0.get(key) {
             Some(s) => match s {
-                Unit::Vector(v) => Ok(v.clone()),
+                Unit::Vector(v) => Ok(v.clone()[bound[0]..bound[1]].to_vec()),
                 Unit::String(_) => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
