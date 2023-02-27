@@ -1,7 +1,10 @@
 use tokio::{net::{TcpListener, TcpStream}, io::{AsyncReadExt, AsyncWriteExt}};
 
 mod encoder;
+mod decoder;
+
 use encoder::*;
+use decoder::*;
 
 #[tokio::main]
 async fn main() {
@@ -40,10 +43,11 @@ async fn handle_connection(stream: &mut TcpStream) {
         if cmd[0].len() != 2 {
            stream.write(&encode_resp_error_string("(error) Cannot Process")).await.unwrap();
         }
-        let cmd_len: usize = *&cmd[0][1..2].parse().unwrap();
-        match cmd[2].to_ascii_lowercase().trim() {
+        let cmd_len: usize = cmd[0][1..2].parse::<usize>().unwrap() * 2;
+        let pure_cmd = decode_get_pure_command(cmd[0..cmd_len + 1].to_vec());
+        match pure_cmd[0].to_ascii_lowercase().trim() {
             "ping" => stream.write(&encode_resp_simple_string("PONG")).await.unwrap(),
-            _ => todo!(),
+            _ => stream.write(&encode_resp_error_string("Command not recognised")).await.unwrap(),
         };
     }
 }
