@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 #[derive(Clone)]
-pub enum Unit {
+enum Unit {
     String(String),
     Vector(Vec<String>),
 }
@@ -23,9 +23,12 @@ impl Storage {
         self.0.insert(key, Unit::String(value));
     }
 
-    pub fn get_string(&self, key: &str) -> Result<Unit, StorageError> {
+    pub fn get_string(&self, key: &str) -> Result<String, StorageError> {
         match self.0.get(key) {
-            Some(s) => Ok(s.clone()),
+            Some(s) => match s {
+                Unit::String(v) => Ok(v.clone()),
+                Unit::Vector(_) => Err(StorageError::BadType),
+            },
             _ => Err(StorageError::NotFound),
         }
     }

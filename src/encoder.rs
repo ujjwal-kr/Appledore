@@ -32,3 +32,11 @@ pub fn encode_resp_bulk_string(data: String) -> Vec<u8> {
     encoded.extend(&[b'\r', b'\n']);
     encoded
 }
+
+pub fn empty_bulk_string() -> Vec<u8> {
+    let mut encoded: Vec<u8> = vec![];
+    encoded.push(b'$');
+    encoded.extend("-1".to_string().as_bytes());
+    encoded.extend(&[b'\r', b'\n']);
+    encoded
+}

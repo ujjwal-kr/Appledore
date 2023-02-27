@@ -11,7 +11,7 @@ mod storage;
 
 use decoder::*;
 use encoder::*;
-use storage::{Storage, Unit};
+use storage::{Storage, StorageError};
 
 #[tokio::main]
 async fn main() {
@@ -20,12 +20,12 @@ async fn main() {
     println!("Listening on ::6379");
     loop {
         let incoming = listener.accept().await;
+        let cloned_storage = Arc::clone(&storage_engine);
         match incoming {
             Ok((mut stream, _)) => {
                 println!("New Connection");
-                let cloned_storage = Arc::clone(&storage_engine);
                 tokio::spawn(async move {
-                    handle_connection(&mut stream).await;
+                    handle_connection(&mut stream, cloned_storage).await;
                 });
             }
             Err(e) => {
@@ -35,7 +35,7 @@ async fn main() {
     }
 }
 
-async fn handle_connection(stream: &mut TcpStream) {
+async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Storage>>) {
     let mut buf = [0; 512];
     loop {
         let bytes_read = stream.read(&mut buf).await.unwrap();
@@ -74,11 +74,46 @@ async fn handle_connection(stream: &mut TcpStream) {
                         .unwrap();
                 }
             }
-            // "set" => {
-            //     let mut st = storage.lock().unwrap();
-            //     st.set_string("ok".to_owned(), "ok".to_owned());
-            //     stream.write(&encode_resp_simple_string("Ok")).await.unwrap()
-            // },
+            "set" => {
+                if pure_cmd.len() < 3 {
+                    stream
+                        .write(&encode_resp_error_string("Invalid args for SET"))
+                        .await
+                        .unwrap();
+                }
+                let k = pure_cmd[1].clone();
+                let v = pure_cmd[2].clone();
+                client_store.lock().unwrap().set_string(k, v);
+                stream
+                    .write(&encode_resp_simple_string("OK"))
+                    .await
+                    .unwrap();
+            }
+            "get" => {
+                if pure_cmd.len() < 2 {
+                    stream
+                        .write(&encode_resp_error_string("Invalid args for GET"))
+                        .await
+                        .unwrap();
+                }
+                let key = pure_cmd[1].clone();
+                let clock = client_store.lock().unwrap().get_string(&key);
+                match clock {
+                    Ok(value) => {
+                        stream.write(&encode_resp_bulk_string(value)).await.unwrap();
+                    }
+                    Err(e) => match e {
+                        StorageError::BadType => {
+                            stream.write(&encode_resp_error_string(
+                                "WRONGTYPE Operation against a key holding the wrong kind of value",
+                            )).await.unwrap();
+                        }
+                        StorageError::NotFound => {
+                            stream.write(&empty_bulk_string()).await.unwrap();
+                        }
+                    },
+                }
+            }
             _ => {
                 stream
                     .write(&encode_resp_error_string("Command not recognised"))
