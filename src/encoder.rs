@@ -21,3 +21,14 @@ pub fn encode_resp_integer(number: i64) -> Vec<u8> {
     encoded.extend(&[b'\r', b'\n']);
     encoded
 }
+
+pub fn encode_resp_bulk_string(data: String) -> Vec<u8> {
+    let mut encoded: Vec<u8> = vec![];
+    encoded.push(b'$');
+    let len = data.len();
+    encoded.extend(len.to_string().as_bytes());
+    encoded.extend(&[b'\r', b'\n']);
+    encoded.extend(data.as_bytes());
+    encoded.extend(&[b'\r', b'\n']);
+    encoded
+}
