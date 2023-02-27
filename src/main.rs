@@ -114,6 +114,38 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
                     },
                 }
             }
+            "lpush" | "rpush" => {
+                if pure_cmd.len() < 3 {
+                    stream
+                        .write(&encode_resp_error_string(
+                            format!("Invalid args for {}", pure_cmd[0]).trim(),
+                        ))
+                        .await
+                        .unwrap();
+                }
+                let items = pure_cmd[2..pure_cmd.len()].to_vec();
+                let clock = client_store.lock().unwrap().set_array(
+                    pure_cmd[2].clone(),
+                    items.clone(),
+                    pure_cmd[0].trim(),
+                );
+                match clock {
+                    Ok(_) => {
+                        stream
+                            .write(&encode_resp_integer(items.len().to_string().trim()))
+                            .await
+                            .unwrap();
+                    }
+                    Err(_) => {
+                        stream
+                            .write(&encode_resp_error_string(
+                                "WRONGTYPE Operation against a key holding the wrong kind of value",
+                            ))
+                            .await
+                            .unwrap();
+                    }
+                }
+            }
             _ => {
                 stream
                     .write(&encode_resp_error_string("Command not recognised"))
