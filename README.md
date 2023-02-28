@@ -6,6 +6,8 @@ A toy Redis clone that's capable of handling
 basic commands like `PING`, `SET` and `GET`, etc. Built to get familiar about
 concurrent programming, implementing the redis protocol, and more. Created as a part of ["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
 
+![image](https://user-images.githubusercontent.com/38783809/221806792-74f4f4e2-c3b9-401e-bfe8-d80c70f7cf74.png)
+
 ## Supported Commands
 - PING
 - ECHO
