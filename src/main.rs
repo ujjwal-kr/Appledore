@@ -7,11 +7,12 @@ use tokio::{
 
 mod decoder;
 mod encoder;
+mod commands;
 mod storage;
 
 use decoder::*;
 use encoder::*;
-use storage::{Storage, StorageError};
+use storage::Storage;
 
 #[tokio::main]
 async fn main() {
@@ -54,150 +55,15 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
         }
         let cmd_len: usize = cmd[0][1..2].parse::<usize>().unwrap() * 2;
         let pure_cmd = decode_get_pure_command(cmd[0..cmd_len + 1].to_vec());
+
         match pure_cmd[0].to_ascii_lowercase().trim() {
-            "ping" => {
-                stream
-                    .write(&encode_resp_simple_string("PONG"))
-                    .await
-                    .unwrap();
-            }
-            "echo" => {
-                if pure_cmd.len() < 2 {
-                    stream
-                        .write(&encode_resp_error_string("Invalid args for ECHO"))
-                        .await
-                        .unwrap();
-                } else {
-                    stream
-                        .write(&encode_resp_bulk_string(pure_cmd[1].clone()))
-                        .await
-                        .unwrap();
-                }
-            }
-            "set" => {
-                if pure_cmd.len() < 3 {
-                    stream
-                        .write(&encode_resp_error_string("Invalid args for SET"))
-                        .await
-                        .unwrap();
-                }
-                let k = pure_cmd[1].clone();
-                let v = pure_cmd[2].clone();
-                client_store.lock().unwrap().set_string(k, v);
-                stream
-                    .write(&encode_resp_simple_string("OK"))
-                    .await
-                    .unwrap();
-            }
-            "get" => {
-                if pure_cmd.len() < 2 {
-                    stream
-                        .write(&encode_resp_error_string("Invalid args for GET"))
-                        .await
-                        .unwrap();
-                }
-                let key = pure_cmd[1].clone();
-                let clock = client_store.lock().unwrap().get_string(&key);
-                match clock {
-                    Ok(value) => {
-                        stream.write(&encode_resp_bulk_string(value)).await.unwrap();
-                    }
-                    Err(e) => match e {
-                        StorageError::BadType => {
-                            stream.write(&encode_resp_error_string(
-                                "WRONGTYPE Operation against a key holding the wrong kind of value",
-                            )).await.unwrap();
-                        }
-                        StorageError::NotFound => {
-                            stream.write(&empty_bulk_string()).await.unwrap();
-                        }
-                    },
-                }
-            }
-            "lpush" | "rpush" => {
-                if pure_cmd.len() < 3 {
-                    stream
-                        .write(&encode_resp_error_string(
-                            format!("Invalid args for {}", pure_cmd[0]).trim(),
-                        ))
-                        .await
-                        .unwrap();
-                }
-                let items = pure_cmd[2..pure_cmd.len()].to_vec();
-                let clock = client_store.lock().unwrap().set_array(
-                    pure_cmd[1].clone(),
-                    items.clone(),
-                    pure_cmd[0].trim(),
-                );
-                match clock {
-                    Ok(_) => {
-                        stream
-                            .write(&encode_resp_integer(items.len().to_string().trim()))
-                            .await
-                            .unwrap();
-                    }
-                    Err(_) => {
-                        stream
-                            .write(&encode_resp_error_string(
-                                "WRONGTYPE Operation against a key holding the wrong kind of value",
-                            ))
-                            .await
-                            .unwrap();
-                    }
-                }
-            }
-            "lrange" => {
-                if pure_cmd.len() < 4 {
-                    stream
-                        .write(&encode_resp_error_string("Invalid args for lrange"))
-                        .await
-                        .unwrap();
-                }
-                let key = pure_cmd[1].clone();
-                let len_clock = client_store.lock().unwrap().get_array_len(&key);
-                let mut len: usize = 0;
-                match len_clock {
-                    Ok(v) => len = v,
-                    Err(e) => match e {
-                        StorageError::BadType => {
-                            stream
-                                .write(&encode_resp_error_string(
-                                    "WRONGTYPE Operation against a key holding the wrong kind of value",
-                                ))
-                                .await
-                                .unwrap();
-                        }
-                        StorageError::NotFound => {
-                            stream.write(&empty_bulk_string()).await.unwrap();
-                        }
-                    },
-                }
-                if len > 0 {
-                    match decode_array_indices(pure_cmd[2].trim(), pure_cmd[3].trim(), len) {
-                        Ok(bound) => {
-                            let array_clock = client_store.lock().unwrap().get_array(&key, bound);
-                            match array_clock {
-                                Ok(array) => {
-                                    stream.write(&encode_resp_arrays(array)).await.unwrap();
-                                }
-                                Err(_) => {}
-                            }
-                        }
-                        Err(_) => {
-                            stream
-                                .write(&encode_resp_error_string("Invalid range"))
-                                .await
-                                .unwrap();
-                        }
-                    }
-                }
-            }
-            _ => {
-                stream
-                    .write(&encode_resp_error_string("Command not recognised"))
-                    .await
-                    .unwrap();
-            }
+            "ping" => commands::ping(stream).await,
+            "echo" => commands::echo(stream, pure_cmd).await,
+            "set" => commands::set(stream, pure_cmd, Arc::clone(&client_store)).await,
+            "get" => commands::get(stream, pure_cmd, Arc::clone(&client_store)).await,
+            "lpush" | "rpush" => commands::push(stream, pure_cmd, Arc::clone(&client_store)).await,
+            "lrange" => commands::lrange(stream, pure_cmd, Arc::clone(&client_store)).await,
+            _ => commands::undefined(stream).await
         };
     }
 }
