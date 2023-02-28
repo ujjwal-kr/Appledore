@@ -145,37 +145,32 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
                             .unwrap();
                     }
                 }
-            },
+            }
             "lrange" => {
                 if pure_cmd.len() < 4 {
                     stream
-                    .write(&encode_resp_error_string("Invalid args for lrange"))
-                    .await
-                    .unwrap();
+                        .write(&encode_resp_error_string("Invalid args for lrange"))
+                        .await
+                        .unwrap();
                 }
                 let key = pure_cmd[1].clone();
                 let len_clock = client_store.lock().unwrap().get_array_len(&key);
                 let mut len: usize = 0;
                 match len_clock {
                     Ok(v) => len = v,
-                    Err(e) => {
-                        match e {
-                            StorageError::BadType => {
-                                stream
+                    Err(e) => match e {
+                        StorageError::BadType => {
+                            stream
                                 .write(&encode_resp_error_string(
                                     "WRONGTYPE Operation against a key holding the wrong kind of value",
                                 ))
                                 .await
                                 .unwrap();
-                            },
-                            StorageError::NotFound => {
-                                stream
-                                .write(&empty_bulk_string())
-                                .await
-                                .unwrap();
-                            },
                         }
-                    }
+                        StorageError::NotFound => {
+                            stream.write(&empty_bulk_string()).await.unwrap();
+                        }
+                    },
                 }
                 if len > 0 {
                     match decode_array_indices(pure_cmd[2].trim(), pure_cmd[3].trim(), len) {
@@ -184,15 +179,15 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
                             match array_clock {
                                 Ok(array) => {
                                     stream.write(&encode_resp_arrays(array)).await.unwrap();
-                                },
-                                Err(_) => {},
+                                }
+                                Err(_) => {}
                             }
-                        },
+                        }
                         Err(_) => {
                             stream
-                            .write(&encode_resp_error_string("Invalid range"))
-                            .await
-                            .unwrap();
+                                .write(&encode_resp_error_string("Invalid range"))
+                                .await
+                                .unwrap();
                         }
                     }
                 }
