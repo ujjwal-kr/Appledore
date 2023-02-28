@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Unit {
     String(String),
     Vector(Vec<String>),
@@ -64,6 +64,16 @@ impl Storage {
         match self.0.get(key) {
             Some(s) => match s {
                 Unit::Vector(v) => Ok(v.clone()[bound[0]..bound[1]].to_vec()),
+                Unit::String(_) => Err(StorageError::BadType),
+            },
+            _ => Err(StorageError::NotFound),
+        }
+    }
+
+    pub fn get_array_len(&mut self, key: &str) -> Result<usize, StorageError> {
+        match self.0.get(key) {
+            Some(s) => match s {
+                Unit::Vector(v) => Ok(v.len()),
                 Unit::String(_) => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
