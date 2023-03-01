@@ -25,3 +25,5 @@ Run `cargo run` to start the server. You can use the official redis CLI to inter
 - More array stuff
 - Persistent storage
 - Organize code
+
+A work in progress by [@ujjwal-kr](https://github.com/ujjwal-kr).
