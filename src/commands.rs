@@ -90,9 +90,10 @@ pub async fn push(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: A
         pure_cmd[0].trim(),
     );
     match clock {
-        Ok(_) => {
+        Ok(len) => {
+            let str_len = len.to_string();
             stream
-                .write(&encode_resp_integer(items.len().to_string().trim()))
+                .write(&encode_resp_integer(str_len.trim()))
                 .await
                 .unwrap();
         }

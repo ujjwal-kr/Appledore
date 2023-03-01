@@ -38,26 +38,32 @@ impl Storage {
         key: String,
         arr: Vec<String>,
         cmd: &str,
-    ) -> Result<(), StorageError> {
+    ) -> Result<usize, StorageError> {
         match self.get_array(&key, [0, arr.len()].to_vec()) {
             Ok(_) => match self.0.get_mut(&key) {
                 Some(v) => match v {
                     Unit::Vector(value) => {
                         if cmd == "lpush" {
                             value.splice(0..0, arr);
+                            Ok(value.len())
                         } else if cmd == "rpush" {
                             value.extend(arr);
+                            Ok(value.len())
+                        } else {
+                            panic!("nani?")
                         }
                     }
                     Unit::String(_) => return Err(StorageError::BadType),
                 },
-                None => {}
+                None => {
+                    panic!("nani?")
+                }
             },
             Err(_) => {
-                self.0.insert(key, Unit::Vector(arr));
+                self.0.insert(key, Unit::Vector(arr.clone()));
+                Ok(arr.len())
             }
         }
-        Ok(())
     }
 
     pub fn get_array(&mut self, key: &str, bound: Vec<usize>) -> Result<Vec<String>, StorageError> {
