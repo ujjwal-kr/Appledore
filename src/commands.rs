@@ -38,14 +38,15 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .write(&encode_resp_error_string("Invalid args for SET"))
             .await
             .unwrap();
+    } else {
+        let k = pure_cmd[1].clone();
+        let v = pure_cmd[2].clone();
+        client_store.lock().unwrap().set_string(k, v);
+        stream
+            .write(&encode_resp_simple_string("OK"))
+            .await
+            .unwrap();
     }
-    let k = pure_cmd[1].clone();
-    let v = pure_cmd[2].clone();
-    client_store.lock().unwrap().set_string(k, v);
-    stream
-        .write(&encode_resp_simple_string("OK"))
-        .await
-        .unwrap();
 }
 
 pub async fn get(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Arc<Mutex<Storage>>) {
@@ -54,23 +55,24 @@ pub async fn get(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .write(&encode_resp_error_string("Invalid args for GET"))
             .await
             .unwrap();
-    }
-    let key = pure_cmd[1].clone();
-    let clock = client_store.lock().unwrap().get_string(&key);
-    match clock {
-        Ok(value) => {
-            stream.write(&encode_resp_bulk_string(value)).await.unwrap();
+    } else {
+        let key = pure_cmd[1].clone();
+        let clock = client_store.lock().unwrap().get_string(&key);
+        match clock {
+            Ok(value) => {
+                stream.write(&encode_resp_bulk_string(value)).await.unwrap();
+            }
+            Err(e) => match e {
+                StorageError::BadType => {
+                    stream.write(&encode_resp_error_string(
+                        "WRONGTYPE Operation against a key holding the wrong kind of value",
+                    )).await.unwrap();
+                }
+                StorageError::NotFound => {
+                    stream.write(&empty_bulk_string()).await.unwrap();
+                }
+            }
         }
-        Err(e) => match e {
-            StorageError::BadType => {
-                stream.write(&encode_resp_error_string(
-                    "WRONGTYPE Operation against a key holding the wrong kind of value",
-                )).await.unwrap();
-            }
-            StorageError::NotFound => {
-                stream.write(&empty_bulk_string()).await.unwrap();
-            }
-        },
     }
 }
 
@@ -82,28 +84,29 @@ pub async fn push(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: A
             ))
             .await
             .unwrap();
-    }
-    let items = pure_cmd[2..pure_cmd.len()].to_vec();
-    let clock = client_store.lock().unwrap().set_array(
-        pure_cmd[1].clone(),
-        items.clone(),
-        pure_cmd[0].trim(),
-    );
-    match clock {
-        Ok(len) => {
-            let str_len = len.to_string();
-            stream
-                .write(&encode_resp_integer(str_len.trim()))
-                .await
-                .unwrap();
-        }
-        Err(_) => {
-            stream
-                .write(&encode_resp_error_string(
-                    "WRONGTYPE Operation against a key holding the wrong kind of value",
-                ))
-                .await
-                .unwrap();
+    } else {
+        let items = pure_cmd[2..pure_cmd.len()].to_vec();
+        let clock = client_store.lock().unwrap().set_array(
+            pure_cmd[1].clone(),
+            items.clone(),
+            pure_cmd[0].trim(),
+        );
+        match clock {
+            Ok(len) => {
+                let str_len = len.to_string();
+                stream
+                    .write(&encode_resp_integer(str_len.trim()))
+                    .await
+                    .unwrap();
+            }
+            Err(_) => {
+                stream
+                    .write(&encode_resp_error_string(
+                        "WRONGTYPE Operation against a key holding the wrong kind of value",
+                    ))
+                    .await
+                    .unwrap();
+            }
         }
     }
 }
@@ -114,42 +117,43 @@ pub async fn lrange(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store:
             .write(&encode_resp_error_string("Invalid args for lrange"))
             .await
             .unwrap();
-    }
-    let key = pure_cmd[1].clone();
-    let len_clock = client_store.lock().unwrap().get_array_len(&key);
-    let mut len: usize = 0;
-    match len_clock {
-        Ok(v) => len = v,
-        Err(e) => match e {
-            StorageError::BadType => {
-                stream
-                    .write(&encode_resp_error_string(
-                        "WRONGTYPE Operation against a key holding the wrong kind of value",
-                    ))
-                    .await
-                    .unwrap();
-            }
-            StorageError::NotFound => {
-                stream.write(&empty_bulk_string()).await.unwrap();
-            }
-        },
-    }
-    if len > 0 {
-        match decode_array_indices(pure_cmd[2].trim(), pure_cmd[3].trim(), len) {
-            Ok(bound) => {
-                let array_clock = client_store.lock().unwrap().get_array(&key, bound);
-                match array_clock {
-                    Ok(array) => {
-                        stream.write(&encode_resp_arrays(array)).await.unwrap();
-                    }
-                    Err(_) => {}
+    } else {
+        let key = pure_cmd[1].clone();
+        let len_clock = client_store.lock().unwrap().get_array_len(&key);
+        let mut len: usize = 0;
+        match len_clock {
+            Ok(v) => len = v,
+            Err(e) => match e {
+                StorageError::BadType => {
+                    stream
+                        .write(&encode_resp_error_string(
+                            "WRONGTYPE Operation against a key holding the wrong kind of value",
+                        ))
+                        .await
+                        .unwrap();
                 }
-            }
-            Err(_) => {
-                stream
-                    .write(&encode_resp_error_string("Invalid range"))
-                    .await
-                    .unwrap();
+                StorageError::NotFound => {
+                    stream.write(&empty_bulk_string()).await.unwrap();
+                }
+            },
+        }
+        if len > 0 {
+            match decode_array_indices(pure_cmd[2].trim(), pure_cmd[3].trim(), len) {
+                Ok(bound) => {
+                    let array_clock = client_store.lock().unwrap().get_array(&key, bound);
+                    match array_clock {
+                        Ok(array) => {
+                            stream.write(&encode_resp_arrays(array)).await.unwrap();
+                        }
+                        Err(_) => {}
+                    }
+                }
+                Err(_) => {
+                    stream
+                        .write(&encode_resp_error_string("Invalid range"))
+                        .await
+                        .unwrap();
+                }
             }
         }
     }
