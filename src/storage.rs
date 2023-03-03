@@ -15,6 +15,7 @@ struct Unit {
     value: Value,
 }
 
+#[derive(Debug)]
 pub enum StorageError {
     NotFound,
     BadType,
@@ -51,11 +52,25 @@ impl Storage {
 
     pub fn get_string(&mut self, key: &str) -> Result<String, StorageError> {
         match self.0.get(key) {
-            Some(s) => match &s.value {
-                Value::String(v) => Ok(v.clone()),
-                Value::Vector(_) => Err(StorageError::BadType),
+            Some(s) => {
+                if s.expireat >= Instant::now().elapsed().as_millis() {
+                    self.delete(key.to_string()).unwrap();
+                    return Err(StorageError::NotFound)
+                } else {
+                    match &s.value {
+                        Value::String(v) => Ok(v.clone()),
+                        Value::Vector(_) => Err(StorageError::BadType),
+                    }
+                }
             },
             _ => Err(StorageError::NotFound),
+        }
+    }
+
+    pub fn delete(&mut self, key: String) -> Result<(), StorageError> {
+        match self.0.remove(&key) {
+            Some(_) => Ok(()),
+            None => Err(StorageError::NotFound)
         }
     }
 
