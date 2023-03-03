@@ -24,6 +24,6 @@ pub fn decode_array_indices(s: &str, e: &str, len: usize) -> Result<Vec<usize>, 
     Ok(decoded)
 }
 
-pub fn parse_u64(s: &str) -> Result<u64, ParseIntError> {
-    s.parse::<u64>()
+pub fn parse_i64(s: &str) -> Result<i64, ParseIntError> {
+    s.parse::<i64>()
 }

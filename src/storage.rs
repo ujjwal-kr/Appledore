@@ -1,7 +1,7 @@
 use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
+    collections::HashMap
 };
+use chrono::Utc;
 
 #[derive(Clone, Debug)]
 enum Value {
@@ -11,7 +11,7 @@ enum Value {
 
 #[derive(Clone, Debug)]
 struct Unit {
-    expireat: u128, // add a bool if expirable to avoid comparison
+    expireat: i64, // add a bool if expirable to avoid comparison\
     value: Value,
 }
 
@@ -33,18 +33,18 @@ impl Storage {
         self.0.insert(
             key,
             Unit {
-                expireat: u128::MAX,
+                expireat: i64::MAX,
                 value: Value::String(value),
             },
         );
     }
 
-    pub fn set_string_ex(&mut self, key: String, value: String, time: u64) {
-        let total_time: Duration = Duration::from_millis(time) + Instant::now().elapsed();
+    pub fn set_string_ex(&mut self, key: String, value: String, time: i64) {
+        let total_time: i64 = Utc::now().timestamp_millis() + time;
         self.0.insert(
             key,
             Unit {
-                expireat: total_time.as_millis(),
+                expireat: total_time,
                 value: Value::String(value),
             },
         );
@@ -53,7 +53,7 @@ impl Storage {
     pub fn get_string(&mut self, key: &str) -> Result<String, StorageError> {
         match self.0.get(key) {
             Some(s) => {
-                if s.expireat <= Instant::now().elapsed().as_millis() {
+                if s.expireat <= Utc::now().timestamp_millis() {
                     self.delete(key.to_string()).unwrap();
                     return Err(StorageError::NotFound)
                 } else {
@@ -104,7 +104,7 @@ impl Storage {
                 self.0.insert(
                     key,
                     Unit {
-                        expireat: u128::MAX,
+                        expireat: i64::MAX,
                         value: Value::Vector(arr.clone()),
                     },
                 );
