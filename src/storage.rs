@@ -90,25 +90,28 @@ impl Storage {
         arr: Vec<String>,
         cmd: &str,
     ) -> Result<usize, StorageError> {
-        match self.get_array(&key, [0, arr.len()].to_vec()) {
-            Ok(_) => match self.0.get_mut(&key) {
-                Some(v) => match v.value.clone() {
-                    Value::Vector(mut value) => {
-                        if cmd == "lpush" {
-                            value.splice(0..0, arr);
-                            Ok(value.len())
-                        } else if cmd == "rpush" {
-                            value.extend(arr);
-                            Ok(value.len())
+        match self.get_array(&key, [0, 0].to_vec()) {
+            Ok(_) => match self.0.get(&key) {
+                None => Err(StorageError::NotFound),
+                Some(v) => match &v.value {
+                    Value::Vector(vec) => {
+                        let mut temp_vec = vec.clone();
+                        if cmd == "rpush" {
+                            temp_vec.extend(arr)
                         } else {
-                            panic!("nani?")
+                            temp_vec.splice(0..0, arr);
                         }
+                        self.0.insert(
+                            key,
+                            Unit {
+                                expireat: None,
+                                value: Value::Vector(temp_vec.clone()),
+                            },
+                        );
+                        return Ok(temp_vec.len());
                     }
-                    Value::String(_) => return Err(StorageError::BadType),
+                    Value::String(_) => Err(StorageError::BadType),
                 },
-                None => {
-                    panic!("nani?")
-                }
             },
             Err(_) => {
                 self.0.insert(
