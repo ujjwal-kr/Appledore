@@ -13,6 +13,7 @@ concurrent programming, implementing the redis protocol, and more. Created as a 
 - ECHO
 - SET
 - GET
+- DEL
 - LPUSH
 - RPUSH
 - LRANGE
