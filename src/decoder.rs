@@ -23,3 +23,7 @@ pub fn decode_array_indices(s: &str, e: &str, len: usize) -> Result<Vec<usize>, 
     decoded.extend([start, end]);
     Ok(decoded)
 }
+
+pub fn parse_u64(s: &str) -> Result<u64, ParseIntError> {
+    s.parse::<u64>()
+}

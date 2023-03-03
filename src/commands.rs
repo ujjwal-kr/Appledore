@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, num::ParseIntError};
 
 use tokio::{io::AsyncWriteExt, net::TcpStream};
 
@@ -35,7 +35,7 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .write(&encode_resp_error_string("Invalid args for SET"))
             .await
             .unwrap();
-    } else {
+    } else if pure_cmd.len() == 3 {
         let k = pure_cmd[1].clone();
         let v = pure_cmd[2].clone();
         client_store.lock().unwrap().set_string(k, v);
@@ -43,6 +43,32 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .write(&encode_resp_simple_string("OK"))
             .await
             .unwrap();
+    } else if pure_cmd.len() == 5 {
+        if pure_cmd[3].to_lowercase() == "px" {
+            let key = pure_cmd[1].clone();
+            let millis: u64;
+            match parse_u64(pure_cmd[4].as_str()) {
+                Ok(v) => {
+                    millis = v;
+                    client_store.lock().unwrap().set_string_ex(key, pure_cmd[2].clone(), millis);
+                    stream
+                    .write(&encode_resp_simple_string("OK"))
+                    .await
+                    .unwrap();
+                },
+                _e => {
+                    stream
+                    .write(&encode_resp_error_string("Invalid args for GET"))
+                    .await
+                    .unwrap();
+                }
+            }
+        } else {
+            stream
+            .write(&encode_resp_error_string("Invalid args for GET"))
+            .await
+            .unwrap();
+        }
     }
 }
 
