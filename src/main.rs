@@ -4,10 +4,10 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
 };
- 
+
+mod commands;
 mod decoder;
 mod encoder;
-mod commands;
 mod storage;
 
 use decoder::*;
@@ -63,7 +63,7 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
             "get" => commands::get(stream, pure_cmd, Arc::clone(&client_store)).await,
             "lpush" | "rpush" => commands::push(stream, pure_cmd, Arc::clone(&client_store)).await,
             "lrange" => commands::lrange(stream, pure_cmd, Arc::clone(&client_store)).await,
-            _ => commands::undefined(stream).await
+            _ => commands::undefined(stream).await,
         };
     }
 }

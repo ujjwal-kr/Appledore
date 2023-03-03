@@ -1,21 +1,18 @@
 use std::sync::{Arc, Mutex};
 
-use tokio::{
-    io::AsyncWriteExt,
-    net::TcpStream,
-};
+use tokio::{io::AsyncWriteExt, net::TcpStream};
 
 use crate::{
-    encoder::*, 
-    decoder::*, 
-    storage::{Storage, StorageError}
+    decoder::*,
+    encoder::*,
+    storage::{Storage, StorageError},
 };
 
 pub async fn ping(stream: &mut TcpStream) {
     stream
-    .write(&encode_resp_simple_string("PONG"))
-    .await
-    .unwrap();
+        .write(&encode_resp_simple_string("PONG"))
+        .await
+        .unwrap();
 }
 
 pub async fn echo(stream: &mut TcpStream, pure_cmd: Vec<String>) {
@@ -64,19 +61,26 @@ pub async fn get(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             }
             Err(e) => match e {
                 StorageError::BadType => {
-                    stream.write(&encode_resp_error_string(
-                        "WRONGTYPE Operation against a key holding the wrong kind of value",
-                    )).await.unwrap();
+                    stream
+                        .write(&encode_resp_error_string(
+                            "WRONGTYPE Operation against a key holding the wrong kind of value",
+                        ))
+                        .await
+                        .unwrap();
                 }
                 StorageError::NotFound => {
                     stream.write(&empty_bulk_string()).await.unwrap();
                 }
-            }
+            },
         }
     }
 }
 
-pub async fn push(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Arc<Mutex<Storage>>) {
+pub async fn push(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
     if pure_cmd.len() < 3 {
         stream
             .write(&encode_resp_error_string(
@@ -111,7 +115,11 @@ pub async fn push(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: A
     }
 }
 
-pub async fn lrange(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Arc<Mutex<Storage>>) {
+pub async fn lrange(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
     if pure_cmd.len() < 4 {
         stream
             .write(&encode_resp_error_string("Invalid args for lrange"))
@@ -161,7 +169,7 @@ pub async fn lrange(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store:
 
 pub async fn undefined(stream: &mut TcpStream) {
     stream
-    .write(&encode_resp_error_string("Command not recognised"))
-    .await
-    .unwrap();
+        .write(&encode_resp_error_string("Command not recognised"))
+        .await
+        .unwrap();
 }
