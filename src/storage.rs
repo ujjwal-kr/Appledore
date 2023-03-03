@@ -1,5 +1,6 @@
 use std::{
-    collections::HashMap, time::{Instant, Duration}
+    collections::HashMap,
+    time::{Duration, Instant},
 };
 
 #[derive(Clone, Debug)]
@@ -51,36 +52,36 @@ impl Storage {
 
     pub fn get_string(&mut self, key: &str) -> Result<String, StorageError> {
         match self.0.get(key) {
-            Some(s) => {
-                match s.expireat {
-                    Some(v) => {
-                        if v < Instant::now() {
-                            self.0.remove(key);
-                            return Err(StorageError::NotFound)
-                        } else {
-                            match &s.value {
-                                Value::String(v) => Ok(v.clone()),
-                                Value::Vector(_) => Err(StorageError::BadType),
-                            }
-                        }
-                    },
-                    None => {
+            Some(s) => match s.expireat {
+                Some(v) => {
+                    if v < Instant::now() {
+                        self.0.remove(key);
+                        return Err(StorageError::NotFound);
+                    } else {
                         match &s.value {
                             Value::String(v) => Ok(v.clone()),
                             Value::Vector(_) => Err(StorageError::BadType),
                         }
                     }
                 }
+                None => match &s.value {
+                    Value::String(v) => Ok(v.clone()),
+                    Value::Vector(_) => Err(StorageError::BadType),
+                },
             },
             _ => Err(StorageError::NotFound),
         }
     }
 
-    pub fn delete(&mut self, key: String) -> Result<(), StorageError> {
-        match self.0.remove(&key) {
-            Some(_) => Ok(()),
-            None => Err(StorageError::NotFound)
+    pub fn delete(&mut self, keys: Vec<String>) -> usize {
+        let mut len = 0;
+        for key in keys {
+            match self.0.remove(&key) {
+                Some(_) => len += 1,
+                None => (),
+            }
         }
+        len
     }
 
     pub fn set_array(

@@ -63,6 +63,7 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
             "get" => commands::get(stream, pure_cmd, Arc::clone(&client_store)).await,
             "lpush" | "rpush" => commands::push(stream, pure_cmd, Arc::clone(&client_store)).await,
             "lrange" => commands::lrange(stream, pure_cmd, Arc::clone(&client_store)).await,
+            "del" => commands::del(stream, pure_cmd, Arc::clone(&client_store)).await,
             _ => commands::undefined(stream).await,
         };
     }
