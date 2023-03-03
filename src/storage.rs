@@ -53,7 +53,7 @@ impl Storage {
     pub fn get_string(&mut self, key: &str) -> Result<String, StorageError> {
         match self.0.get(key) {
             Some(s) => {
-                if s.expireat >= Instant::now().elapsed().as_millis() {
+                if s.expireat <= Instant::now().elapsed().as_millis() {
                     self.delete(key.to_string()).unwrap();
                     return Err(StorageError::NotFound)
                 } else {
