@@ -1,7 +1,6 @@
 use std::{
-    collections::HashMap
+    collections::HashMap, time::{Instant, Duration}
 };
-use chrono::Utc;
 
 #[derive(Clone, Debug)]
 enum Value {
@@ -11,7 +10,7 @@ enum Value {
 
 #[derive(Clone, Debug)]
 struct Unit {
-    expireat: i64, // add a bool if expirable to avoid comparison\
+    expireat: Option<Instant>,
     value: Value,
 }
 
@@ -33,18 +32,18 @@ impl Storage {
         self.0.insert(
             key,
             Unit {
-                expireat: i64::MAX,
+                expireat: None,
                 value: Value::String(value),
             },
         );
     }
 
-    pub fn set_string_ex(&mut self, key: String, value: String, time: i64) {
-        let total_time: i64 = Utc::now().timestamp_millis() + time;
+    pub fn set_string_ex(&mut self, key: String, value: String, time: u64) {
+        let total_time = Instant::now() + Duration::from_millis(time);
         self.0.insert(
             key,
             Unit {
-                expireat: total_time,
+                expireat: Some(total_time),
                 value: Value::String(value),
             },
         );
@@ -53,13 +52,23 @@ impl Storage {
     pub fn get_string(&mut self, key: &str) -> Result<String, StorageError> {
         match self.0.get(key) {
             Some(s) => {
-                if s.expireat <= Utc::now().timestamp_millis() {
-                    self.delete(key.to_string()).unwrap();
-                    return Err(StorageError::NotFound)
-                } else {
-                    match &s.value {
-                        Value::String(v) => Ok(v.clone()),
-                        Value::Vector(_) => Err(StorageError::BadType),
+                match s.expireat {
+                    Some(v) => {
+                        if v < Instant::now() {
+                            self.0.remove(key);
+                            return Err(StorageError::NotFound)
+                        } else {
+                            match &s.value {
+                                Value::String(v) => Ok(v.clone()),
+                                Value::Vector(_) => Err(StorageError::BadType),
+                            }
+                        }
+                    },
+                    None => {
+                        match &s.value {
+                            Value::String(v) => Ok(v.clone()),
+                            Value::Vector(_) => Err(StorageError::BadType),
+                        }
                     }
                 }
             },
@@ -104,7 +113,7 @@ impl Storage {
                 self.0.insert(
                     key,
                     Unit {
-                        expireat: i64::MAX,
+                        expireat: None,
                         value: Value::Vector(arr.clone()),
                     },
                 );
