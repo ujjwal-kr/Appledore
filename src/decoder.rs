@@ -19,7 +19,7 @@ pub fn decode_array_indices(s: &str, e: &str, len: usize) -> Result<Vec<usize>, 
     if endi < 0 {
         endi = len as i32 + endi + 1
     }
-    let end: usize = endi.try_into()?;
+    let end: usize = endi.try_into().unwrap();
     decoded.extend([start, end]);
     Ok(decoded)
 }
