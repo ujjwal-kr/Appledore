@@ -18,13 +18,16 @@ concurrent programming, implementing the redis protocol, and more. Created as a 
 - RPUSH
 - LRANGE
 
+Read the [Redis protocol specification](https://redis.io/docs/reference/protocol-spec/) here.
+
 ## Building
 
-Run `cargo run` to start the server. You can use the official redis CLI to interact with this.
+- Make sure to have redis installed. Run `sudo apt install redis` to install redis-server and redis-cli.
+- Run `cargo run` to start the server. You can use the official [redis CLI](https://redis.io/docs/ui/cli/) to interact with it.
 
 ## TODO
-- More array stuff
-- Persistent storage
-- Organize code
+- More array stuff    -- Done
+- Persistent storage  -- Planning
+- Organize code       -- Okay for now
 
 A work in progress by [@ujjwal-kr](https://github.com/ujjwal-kr).
