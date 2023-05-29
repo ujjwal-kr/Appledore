@@ -1,4 +1,4 @@
-# Boomer DB
+# Appledore
 
 A toy Redis clone that's capable of handling
 basic commands like `PING`, `SET` and `GET`, etc. Built to get familiar about
