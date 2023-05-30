@@ -15,7 +15,7 @@ use storage::Storage;
 
 #[tokio::main]
 async fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:6379").await.unwrap();
     let storage_engine = Arc::new(Mutex::new(Storage::new()));
     println!("Listening on ::6379");
     loop {
