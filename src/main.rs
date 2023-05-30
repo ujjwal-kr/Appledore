@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
+    io::AsyncReadExt,
     net::{TcpListener, TcpStream},
 };
 
@@ -11,7 +11,6 @@ mod encoder;
 mod storage;
 
 use decoder::*;
-use encoder::*;
 use storage::Storage;
 
 #[tokio::main]
@@ -23,8 +22,8 @@ async fn main() {
         let incoming = listener.accept().await;
         let cloned_storage = Arc::clone(&storage_engine);
         match incoming {
-            Ok((mut stream, _)) => {
-                println!("New Connection");
+            Ok((mut stream, addr)) => {
+                println!("New Connection, {}", addr);
                 tokio::spawn(async move {
                     handle_connection(&mut stream, cloned_storage).await;
                 });
@@ -37,9 +36,10 @@ async fn main() {
 }
 
 async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Storage>>) {
-    let mut buf = [0; 512];
+    let mut buf: Vec<u8> = vec![];
     loop {
-        let bytes_read = stream.read(&mut buf).await.unwrap();
+        let bytes_read = stream.read_buf(&mut buf).await.unwrap();
+        buf.reserve(bytes_read);
         // break the loop if no bytes recieved
         if bytes_read == 0 {
             println!("Client closed the connection");
@@ -47,12 +47,7 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
         }
         let str_cmd = String::from_utf8_lossy(&buf);
         let cmd: Vec<&str> = str_cmd.split("\r\n").collect::<Vec<&str>>();
-        if cmd[0].len() != 2 {
-            stream
-                .write(&encode_resp_error_string("(error) Cannot Process"))
-                .await
-                .unwrap();
-        }
+        println!("{:?}", cmd);
         let cmd_len: usize = cmd[0][1..2].parse::<usize>().unwrap() * 2;
         let pure_cmd = decode_get_pure_command(cmd[0..cmd_len + 1].to_vec());
 
@@ -66,5 +61,6 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
             "lrange" => commands::lrange(stream, pure_cmd, Arc::clone(&client_store)).await,
             _ => commands::undefined(stream).await,
         };
+        buf.clear();
     }
 }
