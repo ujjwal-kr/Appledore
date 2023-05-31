@@ -3,9 +3,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::encoder::*;
+
 #[derive(Clone, Debug)]
 enum Value {
-    String(String),
+    String(Vec<u8>),
     Vector(Vec<String>),
 }
 
@@ -34,7 +36,7 @@ impl Storage {
             key,
             Unit {
                 expireat: None,
-                value: Value::String(value),
+                value: Value::String(encode_resp_bulk_string(value)),
             },
         );
     }
@@ -45,12 +47,12 @@ impl Storage {
             key,
             Unit {
                 expireat: Some(total_time),
-                value: Value::String(value),
+                value: Value::String(encode_resp_bulk_string(value)),
             },
         );
     }
 
-    pub fn get_string(&mut self, key: &str) -> Result<String, StorageError> {
+    pub fn get_string(&mut self, key: &str) -> Result<Vec<u8>, StorageError> {
         match self.0.get(key) {
             Some(s) => match s.expireat {
                 Some(v) => {

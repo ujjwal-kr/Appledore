@@ -47,7 +47,6 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
         }
         let str_cmd = String::from_utf8_lossy(&buf);
         let cmd: Vec<&str> = str_cmd.split("\r\n").collect::<Vec<&str>>();
-        println!("{:?}", cmd);
         let cmd_len: usize = cmd[0][1..2].parse::<usize>().unwrap() * 2;
         let pure_cmd = decode_get_pure_command(cmd[0..cmd_len + 1].to_vec());
 

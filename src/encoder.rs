@@ -1,5 +1,5 @@
 pub fn encode_resp_simple_string(s: &str) -> Vec<u8> {
-    let mut encoded: Vec<u8> = vec![];
+    let mut encoded: Vec<u8> = Vec::with_capacity(s.len() + 3);
     encoded.push(b'+');
     encoded.extend(s.as_bytes());
     encoded.extend(&[b'\r', b'\n']);

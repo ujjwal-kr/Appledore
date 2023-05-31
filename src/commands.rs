@@ -86,7 +86,7 @@ pub async fn get(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
         let clock = client_store.lock().unwrap().get_string(&key);
         match clock {
             Ok(value) => {
-                stream.write(&encode_resp_bulk_string(value)).await.unwrap();
+                stream.write(&value).await.unwrap();
             }
             Err(e) => match e {
                 StorageError::BadType => {
