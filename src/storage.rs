@@ -9,6 +9,7 @@ use crate::encoder::*;
 enum Value {
     String(Vec<u8>),
     Vector(Vec<String>),
+    Hash(HashMap<String, Vec<u8>>),
 }
 
 #[derive(Clone, Debug)]
@@ -21,6 +22,7 @@ struct Unit {
 pub enum StorageError {
     NotFound,
     BadType,
+    BadCommand,
 }
 
 #[derive(Clone)]
@@ -62,13 +64,13 @@ impl Storage {
                     } else {
                         match &s.value {
                             Value::String(v) => Ok(v.clone()),
-                            Value::Vector(_) => Err(StorageError::BadType),
+                            _ => Err(StorageError::BadType),
                         }
                     }
                 }
                 None => match &s.value {
                     Value::String(v) => Ok(v.clone()),
-                    Value::Vector(_) => Err(StorageError::BadType),
+                    _ => Err(StorageError::BadType),
                 },
             },
             _ => Err(StorageError::NotFound),
@@ -112,7 +114,7 @@ impl Storage {
                         );
                         return Ok(temp_vec.len());
                     }
-                    Value::String(_) => Err(StorageError::BadType),
+                    _ => Err(StorageError::BadType),
                 },
             },
             Err(_) => {
@@ -132,7 +134,7 @@ impl Storage {
         match self.0.get(key) {
             Some(s) => match &s.value {
                 Value::Vector(v) => Ok(v.clone()[bound[0]..bound[1]].to_vec()),
-                Value::String(_) => Err(StorageError::BadType),
+                _ => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
         }
@@ -142,9 +144,51 @@ impl Storage {
         match self.0.get(key) {
             Some(s) => match &s.value {
                 Value::Vector(v) => Ok(v.len()),
-                Value::String(_) => Err(StorageError::BadType),
+                _ => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
         }
+    }
+
+    pub fn hash_set(&mut self, cmd: Vec<String>) -> Result<usize, StorageError> {
+        if cmd.len() % 2 != 0 {
+            return Err(StorageError::BadCommand);
+        }
+        let key = &cmd[1];
+        match self.0.get_mut(key) {
+            Some(u) => match &mut u.value {
+                Value::Hash(map) => {
+                    let mut i = 0usize;
+                    for item in cmd.chunks(2).skip(1) {
+                        i += 1;
+                        map.insert(
+                            item[0].to_owned(),
+                            encode_resp_bulk_string(item[1].to_owned()),
+                        );
+                    }
+                    return Ok(i);
+                }
+                _ => return Err(StorageError::BadType),
+            },
+            _ => {
+                let mut i = 0usize;
+                let mut map: HashMap<String, Vec<u8>> = HashMap::new();
+                for item in cmd.chunks(2).skip(1) {
+                    i += 1;
+                    map.insert(
+                        item[0].to_owned(),
+                        encode_resp_bulk_string(item[1].to_owned()),
+                    );
+                }
+                self.0.insert(
+                    key.to_owned(),
+                    Unit {
+                        expireat: None,
+                        value: Value::Hash(map),
+                    },
+                );
+                return Ok(i);
+            }
+        };
     }
 }
