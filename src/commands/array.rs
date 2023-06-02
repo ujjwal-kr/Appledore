@@ -8,7 +8,6 @@ use crate::{
     storage::{Storage, StorageError},
 };
 
-
 pub async fn push(
     stream: &mut TcpStream,
     pure_cmd: Vec<String>,
@@ -100,3 +99,26 @@ pub async fn lrange(
     }
 }
 
+pub async fn llen(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
+    if pure_cmd.len() != 2 {
+        stream
+            .write(&encode_resp_error_string("Invalid args for 'llen'"))
+            .await
+            .unwrap();
+        return;
+    }
+    let key = pure_cmd[1].as_str();
+    let clock = client_store.lock().unwrap().get_array_len(key);
+    match clock {
+        Ok(len) => {
+            stream.write(&encode_resp_integer(len.to_string().as_str())).await.unwrap();
+        }
+        Err(_) => {
+            stream.write(&encode_resp_integer("0")).await.unwrap();
+        }
+    }
+}
