@@ -74,7 +74,7 @@ pub async fn lrange(
                         .unwrap();
                 }
                 _ => {
-                    stream.write(&empty_bulk_string()).await.unwrap();
+                    stream.write(&encode_resp_empty_array()).await.unwrap();
                 }
             },
         }

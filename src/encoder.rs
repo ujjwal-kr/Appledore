@@ -51,3 +51,8 @@ pub fn encode_resp_arrays(arr: Vec<String>) -> Vec<u8> {
     }
     encoded
 }
+
+pub fn encode_resp_empty_array() -> Vec<u8> {
+let encoded: Vec<u8> = vec![b'*', b'0', b'\r', b'\n'];
+    encoded
+}
