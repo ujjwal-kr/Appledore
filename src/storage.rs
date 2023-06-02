@@ -25,6 +25,11 @@ pub enum StorageError {
     BadCommand,
 }
 
+pub enum PopReply {
+    String(String),
+    Usize(usize),
+}
+
 #[derive(Clone)]
 pub struct Storage(HashMap<String, Unit>);
 
@@ -148,6 +153,31 @@ impl Storage {
             },
             _ => Err(StorageError::NotFound),
         }
+    }
+
+    pub fn pop_array(&mut self, cmd: Vec<String>) -> Result<PopReply, StorageError> {
+        let key = cmd[1].as_str();
+        match self.0.get_mut(key) {
+            Some(u) => match &mut u.value {
+                Value::Vector(v) => {
+                    if cmd.len() > 2 {
+                        let mut total = 0usize;
+                        for item in cmd.iter().skip(2) {
+                            let i = v.iter().position(|x| x == item);
+                            if let Some(idx) = i {
+                                v.remove(idx);
+                                total += 1;
+                            }
+                        }
+                        return Ok(PopReply::Usize(total));
+                    } else {
+                        return Ok(PopReply::String(v.pop().unwrap()));
+                    }
+                }
+                _ => return Err(StorageError::BadType),
+            },
+            _ => return Err(StorageError::NotFound),
+        };
     }
 
     pub fn hash_set(&mut self, cmd: Vec<String>) -> Result<usize, StorageError> {

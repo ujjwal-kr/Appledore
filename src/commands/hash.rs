@@ -7,8 +7,6 @@ use crate::{
     storage::{Storage, StorageError},
 };
 
-
-
 pub async fn hash_set(
     stream: &mut TcpStream,
     pure_cmd: Vec<String>,
@@ -29,7 +27,7 @@ pub async fn hash_set(
                 ))
                 .await
                 .unwrap();
-        },
+        }
         _ => {
             stream
                 .write(&encode_resp_error_string(
@@ -37,6 +35,6 @@ pub async fn hash_set(
                 ))
                 .await
                 .unwrap();
-        },
+        }
     };
 }

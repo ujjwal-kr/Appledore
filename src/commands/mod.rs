@@ -1,5 +1,5 @@
-pub mod hash;
 pub mod array;
+pub mod hash;
 
 use std::sync::{Arc, Mutex};
 
@@ -123,8 +123,6 @@ pub async fn del(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .unwrap();
     }
 }
-
-
 
 pub async fn undefined(stream: &mut TcpStream) {
     stream

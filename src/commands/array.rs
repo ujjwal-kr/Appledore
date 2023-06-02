@@ -115,10 +115,53 @@ pub async fn llen(
     let clock = client_store.lock().unwrap().get_array_len(key);
     match clock {
         Ok(len) => {
-            stream.write(&encode_resp_integer(len.to_string().as_str())).await.unwrap();
+            stream
+                .write(&encode_resp_integer(len.to_string().as_str()))
+                .await
+                .unwrap();
         }
         Err(_) => {
             stream.write(&encode_resp_integer("0")).await.unwrap();
         }
     }
+}
+
+pub async fn lpop(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
+    if pure_cmd.len() < 2 {
+        stream
+            .write(&encode_resp_error_string("Invalid args for lpop"))
+            .await
+            .unwrap();
+    }
+    let clock = client_store.lock().unwrap().pop_array(pure_cmd);
+    match clock {
+        Ok(reply) => match reply {
+            crate::storage::PopReply::String(s) => {
+                stream.write(&encode_resp_bulk_string(s)).await.unwrap();
+            }
+            crate::storage::PopReply::Usize(s) => {
+                stream
+                    .write(&encode_resp_integer(s.to_string().as_str()))
+                    .await
+                    .unwrap();
+            }
+        },
+        Err(e) => match e {
+            StorageError::BadType => {
+                stream
+                    .write(&encode_resp_error_string(
+                        "WRONGTYPE operation against a key holding the wrong kind of value",
+                    ))
+                    .await
+                    .unwrap();
+            }
+            _ => {
+                stream.write(&empty_bulk_string()).await.unwrap();
+            },
+        },
+    };
 }
