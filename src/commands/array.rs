@@ -144,11 +144,8 @@ pub async fn lpop(
             crate::storage::PopReply::String(s) => {
                 stream.write(&encode_resp_bulk_string(s)).await.unwrap();
             }
-            crate::storage::PopReply::Usize(s) => {
-                stream
-                    .write(&encode_resp_integer(s.to_string().as_str()))
-                    .await
-                    .unwrap();
+            crate::storage::PopReply::Vector(v) => {
+                stream.write(&encode_resp_arrays(v)).await.unwrap();
             }
         },
         Err(e) => match e {

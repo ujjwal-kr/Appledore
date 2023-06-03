@@ -27,7 +27,7 @@ pub enum StorageError {
 
 pub enum PopReply {
     String(String),
-    Usize(usize),
+    Vector(Vec<String>),
 }
 
 #[derive(Clone)]
@@ -161,15 +161,19 @@ impl Storage {
             Some(u) => match &mut u.value {
                 Value::Vector(v) => {
                     if cmd.len() > 2 {
-                        let mut total = 0usize;
-                        for item in cmd.iter().skip(2) {
-                            let i = v.iter().position(|x| x == item);
-                            if let Some(idx) = i {
-                                v.remove(idx);
-                                total += 1;
+                        match cmd[2].parse::<u32>() {
+                            Ok(mut n) => {
+                                let mut final_vec: Vec<String> = vec![];
+                                if n > v.len() as u32 {
+                                    n = v.len() as u32;
+                                }
+                                for _ in 0..n {
+                                    final_vec.push(v.pop().unwrap())
+                                }
+                                Ok(PopReply::Vector(final_vec))
                             }
+                            Err(_) => Err(StorageError::BadCommand),
                         }
-                        Ok(PopReply::Usize(total))
                     } else {
                         Ok(PopReply::String(v.pop().unwrap()))
                     }
