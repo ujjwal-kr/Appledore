@@ -65,7 +65,7 @@ impl Storage {
                 Some(v) => {
                     if v < Instant::now() {
                         self.0.remove(key);
-                        return Err(StorageError::NotFound);
+                        Err(StorageError::NotFound)
                     } else {
                         match &s.value {
                             Value::String(v) => Ok(v.clone()),
@@ -117,7 +117,7 @@ impl Storage {
                                 value: Value::Vector(temp_vec.clone()),
                             },
                         );
-                        return Ok(temp_vec.len());
+                        Ok(temp_vec.len())
                     }
                     _ => Err(StorageError::BadType),
                 },
@@ -169,15 +169,15 @@ impl Storage {
                                 total += 1;
                             }
                         }
-                        return Ok(PopReply::Usize(total));
+                        Ok(PopReply::Usize(total))
                     } else {
-                        return Ok(PopReply::String(v.pop().unwrap()));
+                        Ok(PopReply::String(v.pop().unwrap()))
                     }
                 }
-                _ => return Err(StorageError::BadType),
+                _ => Err(StorageError::BadType),
             },
-            _ => return Err(StorageError::NotFound),
-        };
+            _ => Err(StorageError::NotFound),
+        }
     }
 
     pub fn array_get(&mut self, key: &str, mut index: i32) -> Result<String, StorageError> {
@@ -185,12 +185,12 @@ impl Storage {
             Some(u) => match &u.value {
                 Value::Vector(v) => {
                     if index < 0 {
-                        index = v.len() as i32 - (index * -1);
+                        index = v.len() as i32 - -index;
                     }
-                    if v.len() < 1 || index >= v.len() as i32 || index < 0 {
+                    if v.is_empty() || index >= v.len() as i32 || index < 0 {
                         return Err(StorageError::NotFound);
                     }
-                    return Ok(v[index as usize].clone());
+                    Ok(v[index as usize].clone())
                 }
                 _ => Err(StorageError::BadType),
             },
@@ -214,9 +214,9 @@ impl Storage {
                             encode_resp_bulk_string(item[1].to_owned()),
                         );
                     }
-                    return Ok(i);
+                    Ok(i)
                 }
-                _ => return Err(StorageError::BadType),
+                _ => Err(StorageError::BadType),
             },
             _ => {
                 let mut i = 0usize;
@@ -235,8 +235,8 @@ impl Storage {
                         value: Value::Hash(map),
                     },
                 );
-                return Ok(i);
+                Ok(i)
             }
-        };
+        }
     }
 }

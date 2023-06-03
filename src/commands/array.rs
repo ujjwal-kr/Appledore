@@ -20,7 +20,6 @@ pub async fn push(
             ))
             .await
             .unwrap();
-        return;
     } else {
         let items = pure_cmd[2..pure_cmd.len()].to_vec();
         let clock = client_store.lock().unwrap().set_array(
@@ -58,7 +57,6 @@ pub async fn lrange(
             .write(&encode_resp_error_string("Invalid args for lrange"))
             .await
             .unwrap();
-        return;
     } else {
         let key = pure_cmd[1].clone();
         let len_clock = client_store.lock().unwrap().get_array_len(&key);
@@ -181,9 +179,9 @@ pub async fn lindex(
             .unwrap();
         return;
     }
-    let index: i32;
-    match pure_cmd[2].parse::<i32>() {
-        Ok(i) => index = i,
+    
+    let index: i32 = match pure_cmd[2].parse::<i32>() {
+        Ok(i) => i,
         _ => {
             stream
                 .write(&encode_resp_error_string("Invalid arguments for linex"))
