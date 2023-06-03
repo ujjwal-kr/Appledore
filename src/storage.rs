@@ -185,9 +185,9 @@ impl Storage {
             Some(u) => match &u.value {
                 Value::Vector(v) => {
                     if index < 0 {
-                        index = v.len() as i32 - (index * -1); 
+                        index = v.len() as i32 - (index * -1);
                     }
-                    if v.len() < 1 || index >= v.len() as i32 {
+                    if v.len() < 1 || index >= v.len() as i32 || index < 0 {
                         return Err(StorageError::NotFound);
                     }
                     return Ok(v[index as usize].clone());

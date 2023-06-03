@@ -164,7 +164,7 @@ pub async fn lpop(
             }
             _ => {
                 stream.write(&empty_bulk_string()).await.unwrap();
-            },
+            }
         },
     };
 }
@@ -175,31 +175,43 @@ pub async fn lindex(
     client_store: Arc<Mutex<Storage>>,
 ) {
     if pure_cmd.len() != 3 {
-        stream.write(&encode_resp_error_string("Invalid arguments for linex")).await.unwrap();
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for linex"))
+            .await
+            .unwrap();
         return;
     }
     let index: i32;
-    match pure_cmd[1].parse::<i32>() {
+    match pure_cmd[2].parse::<i32>() {
         Ok(i) => index = i,
         _ => {
-            stream.write(&encode_resp_error_string("Invalid arguments for linex")).await.unwrap();
+            stream
+                .write(&encode_resp_error_string("Invalid arguments for linex"))
+                .await
+                .unwrap();
             return;
-        },
+        }
     };
-    let clock = client_store.lock().unwrap().array_get(pure_cmd[0].trim(), index);
+    let clock = client_store
+        .lock()
+        .unwrap()
+        .array_get(pure_cmd[1].trim(), index);
     match clock {
         Ok(s) => {
             stream.write(&encode_resp_bulk_string(s)).await.unwrap();
         }
         Err(e) => match e {
             StorageError::BadType => {
-                stream.write(&encode_resp_error_string(
-                    "WRONGTYPE operation against a key holding the wrong kind of value"
-                )).await.unwrap();
-            },
+                stream
+                    .write(&encode_resp_error_string(
+                        "WRONGTYPE operation against a key holding the wrong kind of value",
+                    ))
+                    .await
+                    .unwrap();
+            }
             _ => {
                 stream.write(&empty_bulk_string()).await.unwrap();
             }
-        } 
+        },
     }
 }
