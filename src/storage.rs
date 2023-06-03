@@ -180,6 +180,24 @@ impl Storage {
         };
     }
 
+    pub fn array_get(&mut self, key: &str, mut index: i32) -> Result<String, StorageError> {
+        match self.0.get(key) {
+            Some(u) => match &u.value {
+                Value::Vector(v) => {
+                    if index < 0 {
+                        index = v.len() as i32 - (index * -1); 
+                    }
+                    if v.len() < 1 || index >= v.len() as i32 {
+                        return Err(StorageError::NotFound);
+                    }
+                    return Ok(v[index as usize].clone());
+                }
+                _ => Err(StorageError::BadType),
+            },
+            None => Err(StorageError::NotFound),
+        }
+    }
+
     pub fn hash_set(&mut self, cmd: Vec<String>) -> Result<usize, StorageError> {
         if cmd.len() % 2 != 0 {
             return Err(StorageError::BadCommand);

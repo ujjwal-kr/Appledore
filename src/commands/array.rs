@@ -20,6 +20,7 @@ pub async fn push(
             ))
             .await
             .unwrap();
+        return;
     } else {
         let items = pure_cmd[2..pure_cmd.len()].to_vec();
         let clock = client_store.lock().unwrap().set_array(
@@ -57,6 +58,7 @@ pub async fn lrange(
             .write(&encode_resp_error_string("Invalid args for lrange"))
             .await
             .unwrap();
+        return;
     } else {
         let key = pure_cmd[1].clone();
         let len_clock = client_store.lock().unwrap().get_array_len(&key);
@@ -136,6 +138,7 @@ pub async fn lpop(
             .write(&encode_resp_error_string("Invalid args for lpop"))
             .await
             .unwrap();
+        return;
     }
     let clock = client_store.lock().unwrap().pop_array(pure_cmd);
     match clock {
@@ -164,4 +167,39 @@ pub async fn lpop(
             },
         },
     };
+}
+
+pub async fn lindex(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
+    if pure_cmd.len() != 3 {
+        stream.write(&encode_resp_error_string("Invalid arguments for linex")).await.unwrap();
+        return;
+    }
+    let index: i32;
+    match pure_cmd[1].parse::<i32>() {
+        Ok(i) => index = i,
+        _ => {
+            stream.write(&encode_resp_error_string("Invalid arguments for linex")).await.unwrap();
+            return;
+        },
+    };
+    let clock = client_store.lock().unwrap().array_get(pure_cmd[0].trim(), index);
+    match clock {
+        Ok(s) => {
+            stream.write(&encode_resp_bulk_string(s)).await.unwrap();
+        }
+        Err(e) => match e {
+            StorageError::BadType => {
+                stream.write(&encode_resp_error_string(
+                    "WRONGTYPE operation against a key holding the wrong kind of value"
+                )).await.unwrap();
+            },
+            _ => {
+                stream.write(&empty_bulk_string()).await.unwrap();
+            }
+        } 
+    }
 }
