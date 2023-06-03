@@ -183,6 +183,64 @@ impl Storage {
         }
     }
 
+    /*
+        ujjwal-kr:
+        This si the mosg unoptimized sh7t i aheve writnen till daete.
+        Will fix optimize after wakig up 10/10 no cap frrfrfr
+    */
+    pub fn remove_array(
+        &mut self,
+        key: &str,
+        mut count: i32,
+        element: String,
+    ) -> Result<i32, StorageError> {
+        match self.0.get_mut(key) {
+            Some(u) => match &mut u.value {
+                Value::Vector(v) => {
+                    let mut final_count = 0i32;
+                    let mut final_idxs: Vec<usize> = vec![];
+                    for (i, item) in v.iter().enumerate() {
+                        if item == &element {
+                            final_idxs.push(i);
+                        }
+                    }
+                    match count {
+                        c if c > 0 => {
+                            for i in final_idxs {
+                                if c < i as i32 + 1 {
+                                    final_count += 1;
+                                    v.remove(i);
+                                }
+                            }
+                            Ok(final_count)
+                        }
+                        mut c if c < 0 => {
+                            c = -c;
+                            final_idxs.reverse();
+                            for i in final_idxs.clone() {
+                                if c < i as i32 + 1 {
+                                    final_count += 1;
+                                    v.remove(i);
+                                }
+                            }
+                            final_idxs.reverse();
+                            Ok(final_count)
+                        }
+                        _ => {
+                            for i in final_idxs.clone() {
+                                    final_count += 1;
+                                    v.remove(i);
+                            }
+                            Ok(final_count)
+                        }
+                    }
+                }
+                _ => return Err(StorageError::BadType),
+            },
+            _ => return Err(StorageError::NotFound),
+        }
+    }
+
     pub fn array_get(&mut self, key: &str, mut index: i32) -> Result<String, StorageError> {
         match self.0.get(key) {
             Some(u) => match &u.value {
