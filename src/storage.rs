@@ -160,22 +160,21 @@ impl Storage {
         match self.0.get_mut(key) {
             Some(u) => match &mut u.value {
                 Value::Vector(v) => {
-                    if cmd.len() > 2 {
-                        match cmd[2].parse::<u32>() {
-                            Ok(mut n) => {
-                                let mut final_vec: Vec<String> = vec![];
-                                if n > v.len() as u32 {
-                                    n = v.len() as u32;
-                                }
-                                for _ in 0..n {
-                                    final_vec.push(v.pop().unwrap())
-                                }
-                                Ok(PopReply::Vector(final_vec))
+                    if cmd.len() == 2 {
+                        return Ok(PopReply::String(v.pop().unwrap()));
+                    }
+                    match cmd[2].parse::<u32>() {
+                        Ok(mut n) => {
+                            let mut final_vec: Vec<String> = vec![];
+                            if n > v.len() as u32 {
+                                n = v.len() as u32;
                             }
-                            Err(_) => Err(StorageError::BadCommand),
+                            for _ in 0..n {
+                                final_vec.push(v.pop().unwrap())
+                            }
+                            Ok(PopReply::Vector(final_vec))
                         }
-                    } else {
-                        Ok(PopReply::String(v.pop().unwrap()))
+                        Err(_) => Err(StorageError::BadCommand),
                     }
                 }
                 _ => Err(StorageError::BadType),
