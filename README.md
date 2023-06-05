@@ -20,6 +20,11 @@ High performant and lightweight redis compatible caching layer for use in the ha
 - LPUSH
 - RPUSH
 - LRANGE
+- LLEN
+- LPOP
+- LINDEX
+- LREM
+- HSET
 
 Read the [Redis protocol specification](https://redis.io/docs/reference/protocol-spec/) here.
 
@@ -31,8 +36,7 @@ Read the [Redis protocol specification](https://redis.io/docs/reference/protocol
 - Stop the container using `./start-docker.sh stop`.
 
 ## TODO
-- More array stuff    -- Done
-- Persistent storage  -- Planning
-- Organize code       -- Okay for now
+- HASH
+- JSON features
 
 A work in progress by [@ujjwal-kr](https://github.com/ujjwal-kr).
