@@ -249,6 +249,30 @@ impl Storage {
         }
     }
 
+    pub fn array_set(
+        &mut self,
+        key: &str,
+        mut index: i32,
+        element: String,
+    ) -> Result<(), StorageError> {
+        match self.0.get_mut(key) {
+            Some(u) => match &mut u.value {
+                Value::Vector(v) => {
+                    if index < 0 {
+                        index = v.len() as i32 - -index
+                    }
+                    if index >= v.len() as i32 {
+                         return Err(StorageError::BadCommand)
+                    }
+                    v[index as usize] = element;
+                    Ok(())
+                }
+                _ => Err(StorageError::BadType),
+            },
+            _ => Err(StorageError::NotFound),
+        }
+    }
+
     pub fn hash_set(&mut self, cmd: Vec<String>) -> Result<usize, StorageError> {
         if cmd.len() % 2 != 0 {
             return Err(StorageError::BadCommand);
