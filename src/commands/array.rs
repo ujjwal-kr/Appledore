@@ -176,7 +176,7 @@ pub async fn lindex(
             .unwrap();
         return;
     }
-    
+
     let index: i32 = match pure_cmd[2].parse::<i32>() {
         Ok(i) => i,
         _ => {
@@ -208,5 +208,48 @@ pub async fn lindex(
                 stream.write(&empty_bulk_string()).await.unwrap();
             }
         },
+    }
+}
+
+pub async fn lrem(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
+    if pure_cmd.len() != 4 {
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for 'lrem'"))
+            .await
+            .unwrap();
+    }
+    if let Ok(n) = pure_cmd[2].parse::<i32>() {
+        let clock =
+            client_store
+                .lock()
+                .unwrap()
+                .remove_array(pure_cmd[1].as_str(), n, pure_cmd[3].clone());
+        match clock {
+            Ok(count) => {
+                stream
+                    .write(&encode_resp_integer(count.to_string().as_str()))
+                    .await
+                    .unwrap();
+            }
+            Err(e) => {
+                match e {
+                    StorageError::BadType => {
+                        stream.write(&encode_resp_error_string("WRONGTYPE operation against the key holding the wrong kind of value")).await.unwrap();
+                    }
+                    _ => {
+                        stream.write(&empty_bulk_string()).await.unwrap();
+                    }
+                }
+            }
+        }
+    } else {
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for 'lrem'"))
+            .await
+            .unwrap();
     }
 }

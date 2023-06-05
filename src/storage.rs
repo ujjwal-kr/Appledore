@@ -183,11 +183,6 @@ impl Storage {
         }
     }
 
-    /*
-        ujjwal-kr:
-        This si the mosg unoptimized sh7t i aheve writnen till daete.
-        Will fix optimize after wakig up 10/10 no cap frrfrfr
-    */
     pub fn remove_array(
         &mut self,
         key: &str,
@@ -197,45 +192,40 @@ impl Storage {
         match self.0.get_mut(key) {
             Some(u) => match &mut u.value {
                 Value::Vector(v) => {
-                    let mut final_count = 0i32;
-                    let mut final_idxs: Vec<usize> = vec![];
-                    for (i, item) in v.iter().enumerate() {
-                        if item == &element {
-                            final_idxs.push(i);
+                    let mut idxs: Vec<usize> = vec![];
+                    if v.len() == 0 {
+                        return Ok(0);
+                    }
+                    if count < 0 {
+                        count = -count;
+                        let mut idx = v.len().checked_sub(1);
+                        while let Some(i) = idx {
+                            if idxs.len() as i32 != count {
+                                if v[i] == element {
+                                    idxs.push(i);
+                                }
+                            } else {
+                                break;
+                            }
+                            idx = i.checked_sub(1)
+                        }
+                    } else {
+                        for (i, item) in v.iter().enumerate() {
+                            if idxs.len() as i32 != count {
+                                if item == &element {
+                                    idxs.push(i);
+                                }
+                            } else {
+                                break;
+                            }
                         }
                     }
-                    match count {
-                        c if c > 0 => {
-                            for i in final_idxs {
-                                if c < i as i32 + 1 {
-                                    final_count += 1;
-                                    v.remove(i);
-                                }
-                            }
-                            Ok(final_count)
-                        }
-                        mut c if c < 0 => {
-                            c = -c;
-                            final_idxs.reverse();
-                            for i in final_idxs.clone() {
-                                if c < i as i32 + 1 {
-                                    final_count += 1;
-                                    v.remove(i);
-                                }
-                            }
-                            final_idxs.reverse();
-                            Ok(final_count)
-                        }
-                        _ => {
-                            for i in final_idxs.clone() {
-                                    final_count += 1;
-                                    v.remove(i);
-                            }
-                            Ok(final_count)
-                        }
+                    for i in &idxs {
+                        v.remove(*i);
                     }
+                    Ok(idxs.len() as i32)
                 }
-                _ => return Err(StorageError::BadType),
+                _ => return Err(StorageError::BadCommand),
             },
             _ => return Err(StorageError::NotFound),
         }
