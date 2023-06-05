@@ -30,9 +30,9 @@ Read the [Redis protocol specification](https://redis.io/docs/reference/protocol
 
 ## Building
 
-- Make sure to have redis installed. Run `sudo apt install redis` to install redis-server and redis-cli.
+- Make sure to have redis installed. Run `sudo apt install redis` to install redis-cli.
 - Run `cargo run` to start the server. You can use the official [redis CLI](https://redis.io/docs/ui/cli/) to interact with it.
-- To run using docker, run `./start-docker.sh`.
+- To run using docker, first add the musl target using `rustup target add x86_64-unknown-linux-musl` and then run  `./start-docker.sh`.
 - Stop the container using `./start-docker.sh stop`.
 
 ## TODO
