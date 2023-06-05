@@ -23,6 +23,7 @@ pub enum StorageError {
     NotFound,
     BadType,
     BadCommand,
+    OutOfRange,
 }
 
 pub enum PopReply {
@@ -262,7 +263,7 @@ impl Storage {
                         index = v.len() as i32 - -index
                     }
                     if index >= v.len() as i32 {
-                         return Err(StorageError::BadCommand)
+                        return Err(StorageError::OutOfRange);
                     }
                     v[index as usize] = element;
                     Ok(())

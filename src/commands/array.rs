@@ -253,3 +253,49 @@ pub async fn lrem(
             .unwrap();
     }
 }
+
+pub async fn lset(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
+    if pure_cmd.len() < 4 {
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for 'lset'"))
+            .await
+            .unwrap();
+    }
+    if let Ok(n) = pure_cmd[2].parse::<i32>() {
+        let clock =
+            client_store
+                .lock()
+                .unwrap()
+                .array_set(pure_cmd[1].trim(), n, pure_cmd[3].clone());
+        match clock {
+            Ok(()) => {
+                stream.write(&encode_resp_simple_string("OK")).await.unwrap();
+            },
+            Err(e) => {
+                match e {
+                    StorageError::BadType => {
+                        stream.write(&encode_resp_error_string("WRONGTYPE operation against the key holding the wrong kind of value")).await.unwrap();
+                    }
+                    StorageError::OutOfRange => {
+                        stream
+                            .write(&encode_resp_error_string("index out of range"))
+                            .await
+                            .unwrap();
+                    }
+                    _ => {
+                        stream.write(&encode_resp_empty_array()).await.unwrap();
+                    }
+                }
+            }
+        }
+    } else {
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for 'lset'"))
+            .await
+            .unwrap();
+    }
+}

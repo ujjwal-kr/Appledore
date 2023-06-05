@@ -64,6 +64,7 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
             "lpop" => commands::array::lpop(stream, pure_cmd, Arc::clone(&client_store)).await,
             "lindex" => commands::array::lindex(stream, pure_cmd, Arc::clone(&client_store)).await,
             "lrem" => commands::array::lrem(stream, pure_cmd, Arc::clone(&client_store)).await,
+            "lset" => commands::array::lset(stream, pure_cmd, Arc::clone(&client_store)).await,
             "hset" => commands::hash::hash_set(stream, pure_cmd, Arc::clone(&client_store)).await,
             _ => commands::undefined(stream).await,
         };
