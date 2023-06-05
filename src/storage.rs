@@ -193,7 +193,7 @@ impl Storage {
             Some(u) => match &mut u.value {
                 Value::Vector(v) => {
                     let mut idxs: Vec<usize> = vec![];
-                    if v.len() == 0 {
+                    if v.is_empty() {
                         return Ok(0);
                     }
                     if count < 0 {
@@ -225,9 +225,9 @@ impl Storage {
                     }
                     Ok(idxs.len() as i32)
                 }
-                _ => return Err(StorageError::BadCommand),
+                _ => Err(StorageError::BadCommand),
             },
-            _ => return Err(StorageError::NotFound),
+            _ => Err(StorageError::NotFound),
         }
     }
 
