@@ -1,5 +1,5 @@
 pub fn encode_resp_simple_string(s: &str) -> Vec<u8> {
-    let mut encoded: Vec<u8> = vec![];
+    let mut encoded: Vec<u8> = Vec::with_capacity(s.len() + 3);
     encoded.push(b'+');
     encoded.extend(s.as_bytes());
     encoded.extend(&[b'\r', b'\n']);
@@ -49,5 +49,10 @@ pub fn encode_resp_arrays(arr: Vec<String>) -> Vec<u8> {
     for item in arr {
         encoded.extend(encode_resp_bulk_string(item));
     }
+    encoded
+}
+
+pub fn encode_resp_empty_array() -> Vec<u8> {
+    let encoded: Vec<u8> = vec![b'*', b'0', b'\r', b'\n'];
     encoded
 }
