@@ -273,8 +273,11 @@ pub async fn lset(
                 .array_set(pure_cmd[1].trim(), n, pure_cmd[3].clone());
         match clock {
             Ok(()) => {
-                stream.write(&encode_resp_simple_string("OK")).await.unwrap();
-            },
+                stream
+                    .write(&encode_resp_simple_string("OK"))
+                    .await
+                    .unwrap();
+            }
             Err(e) => {
                 match e {
                     StorageError::BadType => {
