@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    io,
+    sync::{Arc, Mutex},
+};
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -36,13 +39,32 @@ async fn main() {
     }
 }
 
-async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Storage>>) {
-    let mut buf: Vec<u8> = vec![];
+async fn read_data(stream: &mut TcpStream) -> Result<Vec<u8>, io::Error> {
+    const MAX_BUFFER_SIZE: usize = 512;
+    let mut buf: Vec<u8> = Vec::new();
+    let mut buffer = vec![0u8; MAX_BUFFER_SIZE];
     loop {
-        let bytes_read = stream.read_buf(&mut buf).await.unwrap();
-        buf.reserve(bytes_read);
-        // break the loop if no bytes recieved
-        if bytes_read == 0 {
+        let n = stream.read(&mut buffer).await?;
+        if n == 0 {
+            break;
+        }
+        buf.extend_from_slice(&buffer);
+        if n < MAX_BUFFER_SIZE {
+            break;
+        }
+    }
+    Ok(buf)
+}
+
+
+async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Storage>>) {
+    let mut buf: Vec<u8>;
+    loop {
+        match read_data(stream).await {
+            Ok(b) => buf = b,
+            Err(_) => break,
+        }
+        if buf.len() == 0 {
             println!("Client closed the connection");
             break;
         }
