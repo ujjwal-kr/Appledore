@@ -13,6 +13,7 @@ mod decoder;
 mod encoder;
 mod storage;
 
+use commands::*;
 use decoder::*;
 use encoder::*;
 use storage::Storage;
@@ -56,7 +57,6 @@ async fn read_data(stream: &mut TcpStream) -> Result<Vec<u8>, io::Error> {
     Ok(buf)
 }
 
-
 async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Storage>>) {
     let mut buf: Vec<u8>;
     loop {
@@ -74,28 +74,20 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
             cmd_len *= 2;
             let pure_cmd = decode_get_pure_command(cmd[0..cmd_len + 1].to_vec());
             match pure_cmd[0].to_ascii_lowercase().trim() {
-                "ping" => commands::ping(stream).await,
-                "echo" => commands::echo(stream, pure_cmd).await,
-                "set" => commands::set(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "get" => commands::get(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "del" => commands::del(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "lpush" | "rpush" => {
-                    commands::array::push(stream, pure_cmd, Arc::clone(&client_store)).await
-                }
-                "lrange" => {
-                    commands::array::lrange(stream, pure_cmd, Arc::clone(&client_store)).await
-                }
-                "llen" => commands::array::llen(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "lpop" => commands::array::lpop(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "lindex" => {
-                    commands::array::lindex(stream, pure_cmd, Arc::clone(&client_store)).await
-                }
-                "lrem" => commands::array::lrem(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "lset" => commands::array::lset(stream, pure_cmd, Arc::clone(&client_store)).await,
-                "hset" => {
-                    commands::hash::hash_set(stream, pure_cmd, Arc::clone(&client_store)).await
-                }
-                _ => commands::undefined(stream).await,
+                "ping" => ping(stream).await,
+                "echo" => echo(stream, pure_cmd).await,
+                "set" => set(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "get" => get(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "del" => del(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "llen" => array::llen(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "lpop" => array::lpop(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "lrem" => array::lrem(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "lset" => array::lset(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "lpush" | "rpush" => array::push(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "lrange" => array::lrange(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "lindex" => array::lindex(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "hset" => hash::hash_set(stream, pure_cmd, Arc::clone(&client_store)).await,
+                _ => undefined(stream).await,
             };
             buf.clear();
         } else {

@@ -223,11 +223,11 @@ pub async fn lrem(
             .unwrap();
     }
     if let Ok(n) = pure_cmd[2].parse::<i32>() {
-        let clock =
-            client_store
-                .lock()
-                .unwrap()
-                .remove_array(pure_cmd[1].as_str(), n, pure_cmd[3].to_owned());
+        let clock = client_store.lock().unwrap().remove_array(
+            pure_cmd[1].as_str(),
+            n,
+            pure_cmd[3].to_owned(),
+        );
         match clock {
             Ok(count) => {
                 stream

@@ -93,7 +93,7 @@ impl Storage {
         }
         len
     }
-    
+
     pub fn set_array(
         &mut self,
         key: String,
