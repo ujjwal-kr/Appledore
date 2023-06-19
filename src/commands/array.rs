@@ -23,8 +23,8 @@ pub async fn push(
     } else {
         let items = pure_cmd[2..pure_cmd.len()].to_vec();
         let clock = client_store.lock().unwrap().set_array(
-            pure_cmd[1].clone(),
-            items.clone(),
+            pure_cmd[1].to_owned(),
+            items,
             pure_cmd[0].trim(),
         );
         match clock {
@@ -58,7 +58,7 @@ pub async fn lrange(
             .await
             .unwrap();
     } else {
-        let key = pure_cmd[1].clone();
+        let key = pure_cmd[1].to_owned();
         let len_clock = client_store.lock().unwrap().get_array_len(&key);
         let mut len: usize = 0;
         match len_clock {
@@ -227,7 +227,7 @@ pub async fn lrem(
             client_store
                 .lock()
                 .unwrap()
-                .remove_array(pure_cmd[1].as_str(), n, pure_cmd[3].clone());
+                .remove_array(pure_cmd[1].as_str(), n, pure_cmd[3].to_owned());
         match clock {
             Ok(count) => {
                 stream
@@ -270,7 +270,7 @@ pub async fn lset(
             client_store
                 .lock()
                 .unwrap()
-                .array_set(pure_cmd[1].trim(), n, pure_cmd[3].clone());
+                .array_set(pure_cmd[1].trim(), n, pure_cmd[3].to_owned());
         match clock {
             Ok(()) => {
                 stream

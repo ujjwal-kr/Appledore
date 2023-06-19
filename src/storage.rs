@@ -69,13 +69,13 @@ impl Storage {
                         Err(StorageError::NotFound)
                     } else {
                         match &s.value {
-                            Value::String(v) => Ok(v.clone()),
+                            Value::String(v) => Ok(v.to_vec()),
                             _ => Err(StorageError::BadType),
                         }
                     }
                 }
                 None => match &s.value {
-                    Value::String(v) => Ok(v.clone()),
+                    Value::String(v) => Ok(v.to_vec()),
                     _ => Err(StorageError::BadType),
                 },
             },
@@ -93,7 +93,7 @@ impl Storage {
         }
         len
     }
-
+    
     pub fn set_array(
         &mut self,
         key: String,
@@ -101,37 +101,30 @@ impl Storage {
         cmd: &str,
     ) -> Result<usize, StorageError> {
         match self.get_array(&key, [0, 0].to_vec()) {
-            Ok(_) => match self.0.get(&key) {
+            Ok(_) => match self.0.get_mut(&key) {
                 None => Err(StorageError::NotFound),
-                Some(v) => match &v.value {
+                Some(v) => match &mut v.value {
                     Value::Vector(vec) => {
-                        let mut temp_vec = vec.clone();
                         if cmd == "rpush" {
-                            temp_vec.extend(arr)
+                            vec.extend(arr)
                         } else {
-                            temp_vec.splice(0..0, arr);
+                            vec.splice(0..0, arr);
                         }
-                        self.0.insert(
-                            key,
-                            Unit {
-                                expireat: None,
-                                value: Value::Vector(temp_vec.clone()),
-                            },
-                        );
-                        Ok(temp_vec.len())
+                        Ok(vec.len())
                     }
                     _ => Err(StorageError::BadType),
                 },
             },
             Err(_) => {
+                let len = arr.len();
                 self.0.insert(
                     key,
                     Unit {
                         expireat: None,
-                        value: Value::Vector(arr.clone()),
+                        value: Value::Vector(arr),
                     },
                 );
-                Ok(arr.len())
+                Ok(len)
             }
         }
     }
@@ -139,7 +132,7 @@ impl Storage {
     pub fn get_array(&mut self, key: &str, bound: Vec<usize>) -> Result<Vec<String>, StorageError> {
         match self.0.get(key) {
             Some(s) => match &s.value {
-                Value::Vector(v) => Ok(v.clone()[bound[0]..bound[1]].to_vec()),
+                Value::Vector(v) => Ok(v[bound[0]..bound[1]].to_vec()),
                 _ => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
@@ -242,7 +235,7 @@ impl Storage {
                     if v.is_empty() || index >= v.len() as i32 || index < 0 {
                         return Err(StorageError::NotFound);
                     }
-                    Ok(v[index as usize].clone())
+                    Ok(v[index as usize].to_owned())
                 }
                 _ => Err(StorageError::BadType),
             },

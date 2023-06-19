@@ -26,7 +26,7 @@ pub async fn echo(stream: &mut TcpStream, pure_cmd: Vec<String>) {
             .unwrap();
     } else {
         stream
-            .write(&encode_resp_bulk_string(pure_cmd[1].clone()))
+            .write(&encode_resp_bulk_string(pure_cmd[1].to_owned()))
             .await
             .unwrap();
     }
@@ -39,8 +39,8 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .await
             .unwrap();
     } else if pure_cmd.len() == 3 {
-        let k = pure_cmd[1].clone();
-        let v = pure_cmd[2].clone();
+        let k = pure_cmd[1].to_owned();
+        let v = pure_cmd[2].to_owned();
         client_store.lock().unwrap().set_string(k, v);
         stream
             .write(&encode_resp_simple_string("OK"))
@@ -48,7 +48,7 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .unwrap();
     } else if pure_cmd.len() == 5 {
         if pure_cmd[3].to_lowercase() == "px" {
-            let key = pure_cmd[1].clone();
+            let key = pure_cmd[1].to_owned();
             let millis: u64;
             match parse_u64(pure_cmd[4].as_str()) {
                 Ok(v) => {
@@ -56,7 +56,7 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
                     client_store
                         .lock()
                         .unwrap()
-                        .set_string_ex(key, pure_cmd[2].clone(), millis);
+                        .set_string_ex(key, pure_cmd[2].to_owned(), millis);
                     stream
                         .write(&encode_resp_simple_string("OK"))
                         .await
@@ -85,7 +85,7 @@ pub async fn get(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .await
             .unwrap();
     } else {
-        let key = pure_cmd[1].clone();
+        let key = pure_cmd[1].to_owned();
         let clock = client_store.lock().unwrap().get_string(&key);
         match clock {
             Ok(value) => {
