@@ -22,6 +22,7 @@ High performant and lightweight redis compatible caching layer for use in the ha
 - LRANGE
 - LLEN
 - LPOP
+- LSET
 - LINDEX
 - LREM
 - HSET

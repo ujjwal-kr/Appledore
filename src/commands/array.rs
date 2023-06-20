@@ -23,8 +23,8 @@ pub async fn push(
     } else {
         let items = pure_cmd[2..pure_cmd.len()].to_vec();
         let clock = client_store.lock().unwrap().set_array(
-            pure_cmd[1].clone(),
-            items.clone(),
+            pure_cmd[1].to_owned(),
+            items,
             pure_cmd[0].trim(),
         );
         match clock {
@@ -58,7 +58,7 @@ pub async fn lrange(
             .await
             .unwrap();
     } else {
-        let key = pure_cmd[1].clone();
+        let key = pure_cmd[1].to_owned();
         let len_clock = client_store.lock().unwrap().get_array_len(&key);
         let mut len: usize = 0;
         match len_clock {
@@ -177,7 +177,7 @@ pub async fn lindex(
         return;
     }
 
-    let index: i32 = match pure_cmd[2].parse::<i32>() {
+    let index: i64 = match pure_cmd[2].parse::<i64>() {
         Ok(i) => i,
         _ => {
             stream
@@ -222,12 +222,12 @@ pub async fn lrem(
             .await
             .unwrap();
     }
-    if let Ok(n) = pure_cmd[2].parse::<i32>() {
-        let clock =
-            client_store
-                .lock()
-                .unwrap()
-                .remove_array(pure_cmd[1].as_str(), n, pure_cmd[3].clone());
+    if let Ok(n) = pure_cmd[2].parse::<i64>() {
+        let clock = client_store.lock().unwrap().remove_array(
+            pure_cmd[1].as_str(),
+            n,
+            pure_cmd[3].to_owned(),
+        );
         match clock {
             Ok(count) => {
                 stream
@@ -249,6 +249,55 @@ pub async fn lrem(
     } else {
         stream
             .write(&encode_resp_error_string("Invalid arguments for 'lrem'"))
+            .await
+            .unwrap();
+    }
+}
+
+pub async fn lset(
+    stream: &mut TcpStream,
+    pure_cmd: Vec<String>,
+    client_store: Arc<Mutex<Storage>>,
+) {
+    if pure_cmd.len() < 4 {
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for 'lset'"))
+            .await
+            .unwrap();
+    }
+    if let Ok(n) = pure_cmd[2].parse::<i64>() {
+        let clock =
+            client_store
+                .lock()
+                .unwrap()
+                .array_set(pure_cmd[1].trim(), n, pure_cmd[3].to_owned());
+        match clock {
+            Ok(()) => {
+                stream
+                    .write(&encode_resp_simple_string("OK"))
+                    .await
+                    .unwrap();
+            }
+            Err(e) => {
+                match e {
+                    StorageError::BadType => {
+                        stream.write(&encode_resp_error_string("WRONGTYPE operation against the key holding the wrong kind of value")).await.unwrap();
+                    }
+                    StorageError::OutOfRange => {
+                        stream
+                            .write(&encode_resp_error_string("index out of range"))
+                            .await
+                            .unwrap();
+                    }
+                    _ => {
+                        stream.write(&encode_resp_empty_array()).await.unwrap();
+                    }
+                }
+            }
+        }
+    } else {
+        stream
+            .write(&encode_resp_error_string("Invalid arguments for 'lset'"))
             .await
             .unwrap();
     }
