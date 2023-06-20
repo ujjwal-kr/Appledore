@@ -13,9 +13,9 @@ mod decoder;
 mod encoder;
 mod storage;
 
-use commands::*;
 use decoder::*;
 use encoder::*;
+use commands::*;
 use storage::Storage;
 
 #[tokio::main]
@@ -64,7 +64,7 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
             Ok(b) => buf = b,
             Err(_) => break,
         }
-        if buf.len() == 0 {
+        if buf.is_empty() {
             println!("Client closed the connection");
             break;
         }

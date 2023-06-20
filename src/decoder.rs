@@ -15,9 +15,9 @@ pub fn decode_get_pure_command(cmd: Vec<&str>) -> Vec<String> {
 pub fn decode_array_indices(s: &str, e: &str, len: usize) -> Result<Vec<usize>, ParseIntError> {
     let mut decoded: Vec<usize> = vec![];
     let start: usize = s.parse()?;
-    let mut endi: i32 = e.parse()?;
+    let mut endi: i64 = e.parse()?;
     if endi < 0 {
-        endi = len as i32 + endi + 1
+        endi = len as i64 + endi + 1
     }
     let end: usize = endi.try_into().unwrap();
     decoded.extend([start, end]);

@@ -157,11 +157,11 @@ impl Storage {
                     if cmd.len() == 2 {
                         return Ok(PopReply::String(v.pop().unwrap()));
                     }
-                    match cmd[2].parse::<u32>() {
+                    match cmd[2].parse::<u64>() {
                         Ok(mut n) => {
                             let mut final_vec: Vec<String> = vec![];
-                            if n > v.len() as u32 {
-                                n = v.len() as u32;
+                            if n > v.len() as u64 {
+                                n = v.len() as u64;
                             }
                             for _ in 0..n {
                                 final_vec.push(v.pop().unwrap())
@@ -180,9 +180,9 @@ impl Storage {
     pub fn remove_array(
         &mut self,
         key: &str,
-        mut count: i32,
+        mut count: i64,
         element: String,
-    ) -> Result<i32, StorageError> {
+    ) -> Result<i64, StorageError> {
         match self.0.get_mut(key) {
             Some(u) => match &mut u.value {
                 Value::Vector(v) => {
@@ -194,7 +194,7 @@ impl Storage {
                         count = -count;
                         let mut idx = v.len().checked_sub(1);
                         while let Some(i) = idx {
-                            if idxs.len() as i32 != count {
+                            if idxs.len() as i64 != count {
                                 if v[i] == element {
                                     idxs.push(i);
                                 }
@@ -205,7 +205,7 @@ impl Storage {
                         }
                     } else {
                         for (i, item) in v.iter().enumerate() {
-                            if idxs.len() as i32 != count {
+                            if idxs.len() as i64 != count {
                                 if item == &element {
                                     idxs.push(i);
                                 }
@@ -217,7 +217,7 @@ impl Storage {
                     for i in &idxs {
                         v.remove(*i);
                     }
-                    Ok(idxs.len() as i32)
+                    Ok(idxs.len() as i64)
                 }
                 _ => Err(StorageError::BadCommand),
             },
@@ -225,14 +225,14 @@ impl Storage {
         }
     }
 
-    pub fn array_get(&mut self, key: &str, mut index: i32) -> Result<String, StorageError> {
+    pub fn array_get(&mut self, key: &str, mut index: i64) -> Result<String, StorageError> {
         match self.0.get(key) {
             Some(u) => match &u.value {
                 Value::Vector(v) => {
                     if index < 0 {
-                        index = v.len() as i32 - -index;
+                        index = v.len() as i64 - -index;
                     }
-                    if v.is_empty() || index >= v.len() as i32 || index < 0 {
+                    if v.is_empty() || index >= v.len() as i64 || index < 0 {
                         return Err(StorageError::NotFound);
                     }
                     Ok(v[index as usize].to_owned())
@@ -246,16 +246,16 @@ impl Storage {
     pub fn array_set(
         &mut self,
         key: &str,
-        mut index: i32,
+        mut index: i64,
         element: String,
     ) -> Result<(), StorageError> {
         match self.0.get_mut(key) {
             Some(u) => match &mut u.value {
                 Value::Vector(v) => {
                     if index < 0 {
-                        index = v.len() as i32 - -index
+                        index = v.len() as i64 - -index
                     }
-                    if index >= v.len() as i32 {
+                    if index >= v.len() as i64 {
                         return Err(StorageError::OutOfRange);
                     }
                     v[index as usize] = element;

@@ -177,7 +177,7 @@ pub async fn lindex(
         return;
     }
 
-    let index: i32 = match pure_cmd[2].parse::<i32>() {
+    let index: i64 = match pure_cmd[2].parse::<i64>() {
         Ok(i) => i,
         _ => {
             stream
@@ -222,7 +222,7 @@ pub async fn lrem(
             .await
             .unwrap();
     }
-    if let Ok(n) = pure_cmd[2].parse::<i32>() {
+    if let Ok(n) = pure_cmd[2].parse::<i64>() {
         let clock = client_store.lock().unwrap().remove_array(
             pure_cmd[1].as_str(),
             n,
@@ -265,7 +265,7 @@ pub async fn lset(
             .await
             .unwrap();
     }
-    if let Ok(n) = pure_cmd[2].parse::<i32>() {
+    if let Ok(n) = pure_cmd[2].parse::<i64>() {
         let clock =
             client_store
                 .lock()
