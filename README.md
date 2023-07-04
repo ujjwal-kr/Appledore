@@ -30,11 +30,14 @@ High performant and lightweight redis compatible caching layer for use in the ha
 Read the [Redis protocol specification](https://redis.io/docs/reference/protocol-spec/) here.
 
 ## Building
+Make sure to have redis installed. You may need [redis CLI](https://redis.io/docs/ui/cli/) to interact with appledore. 
 
-- Make sure to have redis installed. Run `sudo apt install redis` to install redis-cli.
-- Run `cargo run` to start the server. You can use the official [redis CLI](https://redis.io/docs/ui/cli/) to interact with it.
-- To run using docker, first add the musl target using `rustup target add x86_64-unknown-linux-musl` and then run  `./start-docker.sh`.
-- Stop the container using `./start-docker.sh stop`.
+### Dev mode
+- Run `cargo run` to start the server.
+
+### Prod
+- Run the `./start-docker.sh` script.
+- `./start-docker stop` to stop the container.
 
 ## TODO
 - HASH
