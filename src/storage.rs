@@ -132,7 +132,16 @@ impl Storage {
     pub fn get_array(&mut self, key: &str, bound: Vec<usize>) -> Result<Vec<String>, StorageError> {
         match self.0.get(key) {
             Some(s) => match &s.value {
-                Value::Vector(v) => Ok(v[bound[0]..bound[1]].to_vec()),
+                Value::Vector(v) => {
+                    if bound[1] < bound[0] {
+                        return Err(StorageError::BadCommand);
+                    }
+                    let length = bound[1] - bound[0];
+                    if length > v.len() {
+                        return Err(StorageError::BadCommand)
+                    }
+                    Ok(v[bound[0]..bound[1]].to_vec())
+                }
                 _ => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
