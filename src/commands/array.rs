@@ -85,7 +85,19 @@ pub async fn lrange(
                         Ok(array) => {
                             stream.write(&encode_resp_arrays(array)).await.unwrap();
                         }
-                        Err(_) => {}
+                        Err(e) => {
+                            match e {
+                                StorageError::BadCommand => {
+                                    stream
+                                        .write(&encode_resp_error_string("Invalid range"))
+                                        .await
+                                        .unwrap();
+                                }
+                                _ => {
+                                    stream.write(&encode_resp_error_string("WRONGTYPE Operation against a key holding the wrong kind of value")).await.unwrap();
+                                }
+                            };
+                        }
                     }
                 }
                 Err(_) => {

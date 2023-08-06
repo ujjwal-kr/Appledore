@@ -13,9 +13,9 @@ mod decoder;
 mod encoder;
 mod storage;
 
+use commands::*;
 use decoder::*;
 use encoder::*;
-use commands::*;
 use storage::Storage;
 
 #[tokio::main]
