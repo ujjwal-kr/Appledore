@@ -49,8 +49,19 @@ impl Storage {
         );
     }
 
-    pub fn set_string_ex(&mut self, key: String, value: String, time: u64) {
+    pub fn set_string_px(&mut self, key: String, value: String, time: u64) {
         let total_time = Instant::now() + Duration::from_millis(time);
+        self.0.insert(
+            key,
+            Unit {
+                expireat: Some(total_time),
+                value: Value::String(encode_resp_bulk_string(value)),
+            },
+        );
+    }
+
+    pub fn set_string_ex(&mut self, key: String, value: String, time: u64) {
+        let total_time = Instant::now() + Duration::from_secs(time);
         self.0.insert(
             key,
             Unit {
@@ -138,7 +149,7 @@ impl Storage {
                     }
                     let length = bound[1] - bound[0];
                     if length > v.len() {
-                        return Err(StorageError::BadCommand)
+                        return Err(StorageError::BadCommand);
                     }
                     Ok(v[bound[0]..bound[1]].to_vec())
                 }

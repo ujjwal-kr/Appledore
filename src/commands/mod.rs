@@ -47,16 +47,25 @@ pub async fn set(stream: &mut TcpStream, pure_cmd: Vec<String>, client_store: Ar
             .await
             .unwrap();
     } else if pure_cmd.len() == 5 {
-        if pure_cmd[3].to_lowercase() == "px" {
+        if pure_cmd[3].to_lowercase() == "px" || pure_cmd[3].to_lowercase() == "ex" {
             let key = pure_cmd[1].to_owned();
-            let millis: u64;
+            let elapsed: u64;
             match parse_u64(pure_cmd[4].as_str()) {
                 Ok(v) => {
-                    millis = v;
-                    client_store
-                        .lock()
-                        .unwrap()
-                        .set_string_ex(key, pure_cmd[2].to_owned(), millis);
+                    elapsed = v;
+                    if pure_cmd[3].to_lowercase() == "px" {
+                        client_store.lock().unwrap().set_string_px(
+                            key,
+                            pure_cmd[2].to_owned(),
+                            elapsed,
+                        );
+                    } else {
+                        client_store.lock().unwrap().set_string_ex(
+                            key,
+                            pure_cmd[2].to_owned(),
+                            elapsed,
+                        );
+                    }
                     stream
                         .write(&encode_resp_simple_string("OK"))
                         .await
