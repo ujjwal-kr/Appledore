@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     time::{Duration, Instant},
 };
 
@@ -10,6 +10,7 @@ enum Value {
     String(Vec<u8>),
     Vector(Vec<String>),
     Hash(HashMap<String, Vec<u8>>),
+    Queue(VecDeque<String>),
 }
 
 #[derive(Clone, Debug)]
@@ -284,6 +285,67 @@ impl Storage {
                 _ => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
+        }
+    }
+
+    pub fn queue_add(&mut self, cmd: Vec<String>) -> Result<(), StorageError> {
+        if cmd.len() < 3 {
+            return Err(StorageError::BadCommand);
+        }
+        let key = &cmd[1];
+        match self.0.get_mut(key) {
+            Some(u) => match &mut u.value {
+                Value::Queue(q) => {
+                    let mut items: VecDeque<_> = cmd[2..].to_vec().into();
+                    q.append(&mut items);
+                    return Ok(());
+                }
+                _ => Err(StorageError::BadType),
+            },
+            _ => {
+                let mut new_queue: VecDeque<String> = VecDeque::new();
+                let mut items: VecDeque<_> = cmd[2..].to_owned().into();
+                new_queue.append(&mut items);
+                self.0.insert(
+                    cmd[1].to_owned(),
+                    Unit {
+                        expireat: None,
+                        value: Value::Queue(new_queue),
+                    },
+                );
+                return Ok(());
+            }
+        }
+    }
+
+    pub fn dequeue(&mut self, cmd: Vec<String>) -> Result<String, StorageError> {
+        if cmd.len() < 2 {
+            return Err(StorageError::BadCommand);
+        }
+        match self.0.get_mut(&cmd[1]) {
+            Some(u) => match &mut u.value {
+                Value::Queue(q) => {
+                    if q.len() == 0 {
+                        return Err(StorageError::OutOfRange);
+                    }
+                    return Ok(q.pop_front().unwrap());
+                }
+                _ => Err(StorageError::BadType),
+            },
+            None => Err(StorageError::NotFound),
+        }
+    }
+
+    pub fn qlen(&mut self, cmd: Vec<String>) -> Result<usize, StorageError> {
+        if cmd.len() < 2 {
+            return Err(StorageError::BadCommand);
+        }
+        match self.0.get(&cmd[1]) {
+            Some(u) => match &u.value {
+                Value::Queue(q) => Ok(q.len()),
+                _ => Err(StorageError::BadType),
+            },
+            None => Err(StorageError::NotFound),
         }
     }
 

@@ -87,6 +87,9 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
                 "lrange" => array::lrange(stream, pure_cmd, Arc::clone(&client_store)).await,
                 "lindex" => array::lindex(stream, pure_cmd, Arc::clone(&client_store)).await,
                 "hset" => hash::hash_set(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "qadd" => queue::queue_add(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "qread" => queue::dequeue(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "qlen" => queue::qlen(stream, pure_cmd, Arc::clone(&client_store)).await,
                 _ => undefined(stream).await,
             };
             buf.clear();

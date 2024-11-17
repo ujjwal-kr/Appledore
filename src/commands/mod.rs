@@ -1,5 +1,6 @@
 pub mod array;
 pub mod hash;
+pub mod queue;
 
 use std::sync::{Arc, Mutex};
 
