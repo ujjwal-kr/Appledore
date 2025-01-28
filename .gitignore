@@ -12,3 +12,4 @@ target/
 
 # May commit die but not node_modules
 testapp/
+/.direnv
