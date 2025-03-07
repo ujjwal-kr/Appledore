@@ -355,6 +355,7 @@ impl Storage {
             Some(u) => match &mut u.value {
                 Value::Queue(q) => {
                     if q.size() == 0 {
+                        self.0.remove(&cmd[1]);
                         return Err(StorageError::OutOfRange);
                     }
                     return Ok(q.dequeue().unwrap());
