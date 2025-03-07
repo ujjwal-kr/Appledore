@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     time::{Duration, Instant},
 };
 
@@ -10,13 +10,18 @@ enum Value {
     String(Vec<u8>),
     Vector(Vec<String>),
     Hash(HashMap<String, Vec<u8>>),
-    Queue(VecDeque<String>),
+    Queue(Queue),
 }
 
 #[derive(Clone, Debug)]
 struct Unit {
     expireat: Option<Instant>,
     value: Value,
+}
+
+#[derive(Clone, Debug)]
+struct Queue {
+    queue: Vec<String>
 }
 
 #[derive(Debug)]
@@ -34,6 +39,30 @@ pub enum PopReply {
 
 #[derive(Clone)]
 pub struct Storage(HashMap<String, Unit>);
+
+impl Queue {
+    fn new() -> Self {
+        Queue {
+            queue: Vec::new(),
+        }
+    }
+
+    fn append(&mut self, items: Vec<String>) {
+        self.queue.extend(items);
+    }
+
+    fn dequeue(&mut self) -> Option<String> {
+        if self.queue.is_empty() {
+            None
+        } else {
+            Some(self.queue.remove(0))
+        }
+    }
+
+    fn size(&mut self) -> usize {
+        self.queue.len()
+    }
+}
 
 impl Storage {
     pub fn new() -> Self {
@@ -296,16 +325,16 @@ impl Storage {
         match self.0.get_mut(key) {
             Some(u) => match &mut u.value {
                 Value::Queue(q) => {
-                    let mut items: VecDeque<_> = cmd[2..].to_vec().into();
-                    q.append(&mut items);
+                    let items: Vec<_> = cmd[2..].to_vec().into();
+                    q.append(items);
                     return Ok(());
                 }
                 _ => Err(StorageError::BadType),
             },
             _ => {
-                let mut new_queue: VecDeque<String> = VecDeque::new();
-                let mut items: VecDeque<_> = cmd[2..].to_owned().into();
-                new_queue.append(&mut items);
+                let mut new_queue: Queue = Queue::new();
+                let items: Vec<_> = cmd[2..].to_owned().into();
+                new_queue.append(items);
                 self.0.insert(
                     cmd[1].to_owned(),
                     Unit {
@@ -325,10 +354,10 @@ impl Storage {
         match self.0.get_mut(&cmd[1]) {
             Some(u) => match &mut u.value {
                 Value::Queue(q) => {
-                    if q.len() == 0 {
+                    if q.size() == 0 {
                         return Err(StorageError::OutOfRange);
                     }
-                    return Ok(q.pop_front().unwrap());
+                    return Ok(q.dequeue().unwrap());
                 }
                 _ => Err(StorageError::BadType),
             },
@@ -342,7 +371,7 @@ impl Storage {
         }
         match self.0.get(&cmd[1]) {
             Some(u) => match &u.value {
-                Value::Queue(q) => Ok(q.len()),
+                Value::Queue(q) => Ok(q.clone().size()),
                 _ => Err(StorageError::BadType),
             },
             None => Err(StorageError::NotFound),
