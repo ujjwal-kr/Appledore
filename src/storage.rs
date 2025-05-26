@@ -420,4 +420,111 @@ impl Storage {
             }
         }
     }
+
+    pub fn get_ttl(&mut self, key: &str) -> Result<i64, StorageError> {
+        match self.0.get(key) {
+            None => Ok(-2), // Key not found
+            Some(unit) => {
+                match unit.expireat {
+                    None => Ok(-1), // No expiration
+                    Some(expiration_instant) => {
+                        let now = Instant::now();
+                        if expiration_instant < now {
+                            // Key has expired
+                            self.0.remove(key);
+                            Ok(-2)
+                        } else {
+                            // Key has not expired yet
+                            let remaining_duration = expiration_instant.duration_since(now);
+                            Ok(remaining_duration.as_secs() as i64)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn reap_expired_keys(&mut self) -> usize {
+        let mut reaped_keys_count = 0;
+        let mut keys_to_remove: Vec<String> = Vec::new();
+        let now = Instant::now();
+
+        for (key, unit) in self.0.iter() {
+            if let Some(expiration_instant) = unit.expireat {
+                if expiration_instant < now {
+                    keys_to_remove.push(key.clone());
+                }
+            }
+        }
+
+        for key in keys_to_remove {
+            if self.0.remove(&key).is_some() {
+                reaped_keys_count += 1;
+            }
+        }
+
+        reaped_keys_count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Storage, StorageError}; // Import items from parent module
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    #[test]
+    fn test_reap_multiple_expired_keys() {
+        let mut storage = Storage::new();
+        let key1_reap = "key1_reap_px".to_string();
+        let key2_reap = "key2_reap_px".to_string();
+        let key_noreap = "key_noreap".to_string();
+
+        storage.set_string_px(key1_reap.clone(), "value1".to_string(), 1); // 1 ms
+        storage.set_string_px(key2_reap.clone(), "value2".to_string(), 1); // 1 ms
+        storage.set_string(key_noreap.clone(), "value_no_reap".to_string());
+
+        sleep(Duration::from_millis(50)); // Wait for keys to expire
+
+        let reaped_count = storage.reap_expired_keys();
+        assert_eq!(reaped_count, 2, "Should have reaped 2 keys");
+
+        // Check that expired keys are gone
+        match storage.get_string(&key1_reap) {
+            Err(StorageError::NotFound) => (), // Expected
+            _ => panic!("key1_reap should be NotFound after reaping"),
+        }
+        match storage.get_string(&key2_reap) {
+            Err(StorageError::NotFound) => (), // Expected
+            _ => panic!("key2_reap should be NotFound after reaping"),
+        }
+
+        // Check that non-expired key is still present
+        assert!(storage.get_string(&key_noreap).is_ok(), "key_noreap should still exist");
+    }
+
+    #[test]
+    fn test_reap_no_expired_keys() {
+        let mut storage = Storage::new();
+        let key1_long_px = "key1_long_px".to_string();
+        let key2_no_expiry = "key2_no_expiry".to_string();
+
+        storage.set_string_px(key1_long_px.clone(), "value_long".to_string(), 5000); // 5 seconds, won't expire
+        storage.set_string(key2_no_expiry.clone(), "value_no_expiry".to_string());
+
+        let reaped_count = storage.reap_expired_keys();
+        assert_eq!(reaped_count, 0, "Should have reaped 0 keys");
+
+        // Check that keys are still present
+        assert!(storage.get_string(&key1_long_px).is_ok(), "key1_long_px should still exist");
+        assert!(storage.get_string(&key2_no_expiry).is_ok(), "key2_no_expiry should still exist");
+    }
+
+    #[test]
+    fn test_reap_empty_storage() {
+        let mut storage = Storage::new();
+
+        let reaped_count = storage.reap_expired_keys();
+        assert_eq!(reaped_count, 0, "Should reap 0 keys from empty storage");
+    }
 }

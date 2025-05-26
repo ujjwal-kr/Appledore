@@ -23,6 +23,29 @@ async fn main() {
     let listener = TcpListener::bind("0.0.0.0:6379").await.unwrap();
     let storage_engine = Arc::new(Mutex::new(Storage::new()));
     println!("Listening on ::6379");
+
+    // Get reaper interval from environment variable or use default
+    let reaper_interval_ms = std::env::var("APPLEDORE_REAPER_INTERVAL_MS")
+        .ok() // Convert Result to Option
+        .and_then(|s| s.parse::<u64>().ok()) // Try to parse to u64
+        .unwrap_or(1000); // Default to 1000ms (1 second) if not set or invalid
+    
+    println!("Reaper interval set to {} ms", reaper_interval_ms);
+
+    // Clone storage for the background reaper task
+    let reaper_storage_clone = Arc::clone(&storage_engine);
+
+    // Spawn background task for active key expiration
+    tokio::spawn(async move {
+        loop {
+            let num_reaped = reaper_storage_clone.lock().unwrap().reap_expired_keys();
+            if num_reaped > 0 {
+                println!("Background reaper: Cleared {} expired keys", num_reaped);
+            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(reaper_interval_ms)).await;
+        }
+    });
+
     loop {
         let incoming = listener.accept().await;
         let cloned_storage = Arc::clone(&storage_engine);
@@ -90,6 +113,7 @@ async fn handle_connection(stream: &mut TcpStream, client_store: Arc<Mutex<Stora
                 "qadd" => queue::queue_add(stream, pure_cmd, Arc::clone(&client_store)).await,
                 "qread" => queue::dequeue(stream, pure_cmd, Arc::clone(&client_store)).await,
                 "qlen" => queue::qlen(stream, pure_cmd, Arc::clone(&client_store)).await,
+                "ttl" => commands::timer::ttl(stream, pure_cmd, Arc::clone(&client_store)).await,
                 _ => undefined(stream).await,
             };
             buf.clear();
