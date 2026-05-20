@@ -102,26 +102,32 @@ impl Storage {
     }
 
     pub fn get_string(&mut self, key: &str) -> Result<Vec<u8>, StorageError> {
+        self.check_expiration(key);
         match self.0.get(key) {
-            Some(s) => match s.expireat {
-                Some(v) => {
-                    if v < Instant::now() {
-                        self.0.remove(key);
-                        Err(StorageError::NotFound)
-                    } else {
-                        match &s.value {
-                            Value::String(v) => Ok(v.to_vec()),
-                            _ => Err(StorageError::BadType),
-                        }
-                    }
-                }
-                None => match &s.value {
-                    Value::String(v) => Ok(v.to_vec()),
-                    _ => Err(StorageError::BadType),
-                },
+            Some(s) => match &s.value {
+                Value::String(v) => Ok(v.to_vec()),
+                _ => Err(StorageError::BadType),
             },
             _ => Err(StorageError::NotFound),
         }
+    }
+
+    fn check_expiration(&mut self, key: &str) {
+        if let Some(s) = self.0.get(key) {
+            if let Some(v) = s.expireat {
+                if v < Instant::now() {
+                    self.0.remove(key);
+                }
+            }
+        }
+    }
+
+    pub fn cleanup_expired_keys(&mut self) {
+        let now = Instant::now();
+        self.0.retain(|_, unit| match unit.expireat {
+            Some(expireat) => expireat > now,
+            None => true,
+        });
     }
 
     pub fn delete(&mut self, keys: Vec<String>) -> usize {
@@ -132,6 +138,7 @@ impl Storage {
                 None => (),
             }
         }
+        self.cleanup_expired_keys();
         len
     }
 
@@ -171,6 +178,7 @@ impl Storage {
     }
 
     pub fn get_array(&mut self, key: &str, bound: Vec<usize>) -> Result<Vec<String>, StorageError> {
+        self.check_expiration(key);
         match self.0.get(key) {
             Some(s) => match &s.value {
                 Value::Vector(v) => {
@@ -190,6 +198,7 @@ impl Storage {
     }
 
     pub fn get_array_len(&mut self, key: &str) -> Result<usize, StorageError> {
+        self.check_expiration(key);
         match self.0.get(key) {
             Some(s) => match &s.value {
                 Value::Vector(v) => Ok(v.len()),
@@ -276,6 +285,7 @@ impl Storage {
     }
 
     pub fn array_get(&mut self, key: &str, mut index: i64) -> Result<String, StorageError> {
+        self.check_expiration(key);
         match self.0.get(key) {
             Some(u) => match &u.value {
                 Value::Vector(v) => {
@@ -370,6 +380,7 @@ impl Storage {
         if cmd.len() < 2 {
             return Err(StorageError::BadCommand);
         }
+        self.check_expiration(&cmd[1]);
         match self.0.get(&cmd[1]) {
             Some(u) => match &u.value {
                 Value::Queue(q) => Ok(q.clone().size()),

@@ -22,6 +22,16 @@ use storage::Storage;
 async fn main() {
     let listener = TcpListener::bind("0.0.0.0:6379").await.unwrap();
     let storage_engine = Arc::new(Mutex::new(Storage::new()));
+
+    let cleanup_storage = Arc::clone(&storage_engine);
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            let mut storage = cleanup_storage.lock().unwrap();
+            storage.cleanup_expired_keys();
+        }
+    });
+
     println!("Listening on ::6379");
     loop {
         let incoming = listener.accept().await;
